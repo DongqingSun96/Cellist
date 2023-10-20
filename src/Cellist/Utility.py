@@ -2,7 +2,7 @@
 # @Author: dongqing
 # @Date:   2023-08-26 22:39:03
 # @Last Modified by:   dongqing
-# @Last Modified time: 2023-10-14 12:39:52
+# @Last Modified time: 2023-10-19 16:02:00
 
 import os
 import matplotlib
@@ -14,7 +14,6 @@ import matplotlib.pyplot as plt
 
 from scipy.spatial import KDTree
 from scipy import sparse
-from MAESTRO.scATAC_H5Process import read_10X_h5, write_10X_h5
 
 def sub_mat(mat, genes, cells, genes_sub = None, cells_sub = None):
 	mat_use = mat

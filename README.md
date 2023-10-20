@@ -13,6 +13,7 @@ Cellist is a computational method to perform cell segmentation on high-resolutio
 ```bash
 git clone https://github.com/wanglabtongji/Cellist.git
 cd Cellist
+conda create -n Cellist python=3.10
 pip install -r requirements.txt
 python setup.py install
 ```

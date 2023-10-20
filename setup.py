@@ -2,7 +2,7 @@
 # @Author: dongqing
 # @Date:   2023-10-14 12:54:35
 # @Last Modified by:   dongqing
-# @Last Modified time: 2023-10-14 13:33:39
+# @Last Modified time: 2023-10-14 16:07:36
 
 
 # -*- coding: utf-8 -*-
@@ -40,7 +40,7 @@ def main():
         include_package_data = True,
         author = "Dongqing Sun",
         author_email = "Dongqingsun96@gmail.com",
-        description = "cellist (Cell identification in high-resolution Spatial Transcriptomics) is a cell segmentation tool for high-resolution spatial transcriptomics. ",
+        description = "Cellist (Cell identification in high-resolution Spatial Transcriptomics) is a cell segmentation tool for high-resolution spatial transcriptomics. ",
         license = "GPL-3.0",
         url = "https://github.com/dongqingsun96/Cellist",
         

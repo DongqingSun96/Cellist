@@ -2,7 +2,7 @@
 # @Author: dongqing
 # @Date:   2023-09-13 15:02:14
 # @Last Modified by:   dongqing
-# @Last Modified time: 2023-10-14 14:11:11
+# @Last Modified time: 2023-10-20 11:24:59
 
 
 import gc
@@ -290,6 +290,7 @@ def Write_patch(count_df, coord_df, props_df, nucleus_expr_mat, nucleus_gene, nu
                                 (props_df['centroid-1'] >= ymin_cur) & (props_df['centroid-1'] < ymax_cur), :]
     count_df_patch = count_df.loc[(count_df['x'] >= xmin_cur) & (count_df['x'] < xmax_cur) &
                                 (count_df['y'] >= ymin_cur) & (count_df['y'] < ymax_cur) , :]
+    patch_prefix = "Patch_%s_%s_%s_%s" %(xmin_cur, xmax_cur, ymin_cur, ymax_cur)
     if coord_df_patch_nucl.shape[0] > 0 and props_df_patch.shape[0] > 0:
         nucl_cell_patch = list(set(coord_df_patch_nucl['Cell_ID'].unique()) & set(props_df_patch.index.tolist()))
         nucl_cell_patch = sorted(nucl_cell_patch)
@@ -299,7 +300,11 @@ def Write_patch(count_df, coord_df, props_df, nucleus_expr_mat, nucleus_gene, nu
                 cells_sub = nucl_cell_patch)
             if gene_use == "HVG":
                 # get highly varibale genes
-                selected_genes = get_hvg(nucleus_expr_sub, nucleus_gene_sub, nucleus_cell_sub, 1500)
+                try:
+                    selected_genes = get_hvg(nucleus_expr_sub, nucleus_gene_sub, nucleus_cell_sub, 1500)
+                except:
+                    print('Fail to identify HVG in %s.' %patch_prefix)
+                    return('NULL')
             else:
                 selected_genes = get_frequent_gene(nucleus_expr_sub, nucleus_gene_sub, nucleus_cell_sub, 0.05)
             del nucleus_expr_sub, nucleus_gene_sub, nucleus_cell_sub
@@ -308,7 +313,6 @@ def Write_patch(count_df, coord_df, props_df, nucleus_expr_mat, nucleus_gene, nu
                     mat = all_count_mat, genes = all_count_genes, cells = all_count_spots, 
                     cells_sub = coord_df_patch.index.tolist(), 
                     genes_sub = selected_genes)
-            patch_prefix = "Patch_%s_%s_%s_%s" %(xmin_cur, xmax_cur, ymin_cur, ymax_cur)
             Write_tmp_files(count_df_patch, coord_df_patch, props_df_patch, spot_expr_patch_filter, spot_gene_patch_filter, spot_patch, patch_prefix, patch_data_dir)
             return(patch_prefix)
         else:

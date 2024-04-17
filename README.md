@@ -3,11 +3,21 @@ Cell identification in high-resolution Spatial Transcriptomics
 
 Cellist is a computational method to perform cell segmentation on high-resolution spatial transcriptomics (ST) data, including sequncing-based (e.g. Stereo-seq and Seq-Scope) and imaging-based (e.g. seqFISH+ and STARmap) technologies.
 
+<<<<<<< HEAD
+![avatar](docs/_static/img/Cellist_workflow.png)
+=======
 ![avatar](docs/_static/img/Cellist_framework.png)
+>>>>>>> 1e8bbff2d5030abf814122911c412f811076177e
 
 ## Change Log
 ### v0.0.1a
 * Build Cellist.
+<<<<<<< HEAD
+### v1.0.0
+* Release Cellist.
+
+=======
+>>>>>>> 1e8bbff2d5030abf814122911c412f811076177e
 
 ## Install Cellist
 ```bash
@@ -15,6 +25,32 @@ git clone https://github.com/wanglabtongji/Cellist.git
 cd Cellist
 conda create -n Cellist python=3.10
 pip install -r requirements.txt
+<<<<<<< HEAD
+pip install .
+```
+
+## Documentation
+For full installation and usage of Cellist, please refer to the [documentation](https://cellist.readthedocs.io/en/latest/).
+
+## Usage
+```bash
+cellist --help
+usage: cellist [-h] [-v] {seg,align,watershed,impute} ...
+
+Cellist (Cell identification in high-resolution Spatial Transcriptomics) is a cell segmentation tool for high-resolution spatial transcriptomics.
+
+positional arguments:
+  {seg,align,watershed,impute}
+    seg                 Run Cellist segmentation on high-resolution spatial transcriptomics.
+    align               Refine alignment between image and spatial transcriptomics.
+    watershed           Run initial watershed segmentation on the staining image.
+    impute              Perform spatially-aware gene imputation within each cluster.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --version         Print version info.
+```
+=======
 python setup.py install
 ```
 
@@ -57,3 +93,4 @@ Model arguments:
                         Gene to use to calculate spot-cell distance. 'HVG' means highly variable genes, and 'Frequent' means top frequent genes. Default: HVG.
   --iteration           Iteration or not. If set, Cellist will assign non-nuclei spots iteratively with cell expression and centroid updated.
 ```
+>>>>>>> 1e8bbff2d5030abf814122911c412f811076177e

@@ -9,3 +9,9 @@ seaborn>=0.11.2
 scanpy>=1.9.4
 h5py>=3.8.0
 tables>=3.7.0
+<<<<<<< HEAD
+spateo-release==1.0.2
+leidenalg==0.10.2
+sklearn-ann
+=======
+>>>>>>> 1e8bbff2d5030abf814122911c412f811076177e

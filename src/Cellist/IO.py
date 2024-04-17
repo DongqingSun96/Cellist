@@ -2,7 +2,7 @@
 # @Author: dongqing
 # @Date:   2023-10-14 12:05:31
 # @Last Modified by:   dongqing
-# @Last Modified time: 2023-10-14 14:14:00
+# @Last Modified time: 2024-04-15 19:21:03
 
 import os
 import h5py
@@ -11,7 +11,7 @@ import collections
 import numpy as np
 import pandas as pd
 from scipy import sparse
-from Cellist.Utility import get_cell_mat
+from Cellist.Utility import get_cell_mat, longdf_to_mat
 
 FeatureBCMatrix = collections.namedtuple('FeatureBCMatrix', ['ids', 'names', 'barcodes', 'matrix'])
 
@@ -34,7 +34,7 @@ def read_10X_h5(filename):
         matrix = sparse.csc_matrix((data, indices, indptr), shape=shape)
         return FeatureBCMatrix(ids, names, barcodes, matrix)
 
-def write_10X_h5(filename, matrix, features, barcodes, genome = 'GRCh38', datatype = 'Peak'):
+def write_10X_h5(filename, matrix, features, barcodes, datatype = 'Peak'):
     """Write 10X HDF5 files, support both gene expression and peaks."""
     f = h5py.File(filename, 'w')
     if datatype == 'Peak':
@@ -43,7 +43,6 @@ def write_10X_h5(filename, matrix, features, barcodes, genome = 'GRCh38', dataty
        M = sparse.csc_matrix(matrix, dtype=np.float32)
     B = np.array(barcodes, dtype='|S200')
     P = np.array(features, dtype='|S100')
-    GM = np.array([genome]*len(features), dtype='|S10')
     FT = np.array([datatype]*len(features), dtype='|S100')
     AT = np.array(['genome'], dtype='|S10')
     mat = f.create_group('matrix')
@@ -55,7 +54,6 @@ def write_10X_h5(filename, matrix, features, barcodes, genome = 'GRCh38', dataty
     fet = mat.create_group('features')
     fet.create_dataset('_all_tag_keys', data=AT)
     fet.create_dataset('feature_type', data=FT)
-    fet.create_dataset('genome', data=GM)
     fet.create_dataset('id', data=P)
     fet.create_dataset('name', data=P)
     f.close()
@@ -71,10 +69,10 @@ def read_h5(h5_file):
         expr_cells = [i.decode() for i in expr_cells]
     return(expr_mat, expr_genes, expr_cells)
 
-def write_segmentation_h5(count_df_seg, seg_res, out_prefix, out_dir, count_name, genome = "GRCh38"):
+def write_segmentation_h5(count_df_seg, seg_res, out_prefix, out_dir, count_name):
     expr_mat, gene_list, cell_list = get_cell_mat(count_df_seg, seg_res, count_name)
     count_h5_file = os.path.join(out_dir, "%s_segmentation_cell_count.h5" %out_prefix)
-    write_10X_h5(filename = count_h5_file, matrix = expr_mat, features = gene_list, barcodes = cell_list, genome = genome, datatype = 'Gene')
+    write_10X_h5(filename = count_h5_file, matrix = expr_mat, features = gene_list, barcodes = cell_list, datatype = 'Gene')
 
 def write_segmentation_cell_coord(coord_df_seg, seg_res, out_prefix, out_dir):
     coord_df_seg = coord_df_seg.dropna(subset = [seg_res])
@@ -84,3 +82,11 @@ def write_segmentation_cell_coord(coord_df_seg, seg_res, out_prefix, out_dir):
     cell_coord_nspot = pd.merge(cell_coord, cell_nspot, on = seg_res)
     cell_coord_file = os.path.join(out_dir, "%s_segmentation_cell_coord.txt" %out_prefix)
     cell_coord_nspot.to_csv(cell_coord_file, sep = "\t")
+
+def gem_to_mat(gem_df, outfile, countname = 'MIDCount'):
+    gem_df['x_y'] = gem_df['x'].astype(str) + '_' + gem_df['y'].astype(str)
+    gene_spot = gem_df[countname].groupby([gem_df['x_y'], gem_df['geneID']]).sum()
+    spot_expr_mat, gene_list, spot_list = longdf_to_mat(gene_spot)
+    count_h5_file = outfile
+    write_10X_h5(filename = count_h5_file, matrix = spot_expr_mat, features = gene_list, barcodes = spot_list,  datatype = 'Gene')
+    return(gem_df)

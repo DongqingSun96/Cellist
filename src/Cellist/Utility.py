@@ -2,11 +2,7 @@
 # @Author: dongqing
 # @Date:   2023-08-26 22:39:03
 # @Last Modified by:   dongqing
-<<<<<<< HEAD
 # @Last Modified time: 2024-04-16 13:57:19
-=======
-# @Last Modified time: 2023-10-19 16:02:00
->>>>>>> 1e8bbff2d5030abf814122911c412f811076177e
 
 import os
 import matplotlib
@@ -127,11 +123,7 @@ def slice_coord(coord_df, span_length, overlap_length, x_colname = "x", y_colnam
 		coord_sliced_list.append((xmin_sliced, xmax_sliced, ymin_sliced, ymax_sliced))
 		i = i + span_length - overlap_length
 	xmin_sliced = i
-<<<<<<< HEAD
 	xmax_sliced = xmax + 1
-=======
-	xmax_sliced = xmax
->>>>>>> 1e8bbff2d5030abf814122911c412f811076177e
 	j = ymin
 	while j + span_length <= ymax:
 		ymin_sliced = j
@@ -139,11 +131,7 @@ def slice_coord(coord_df, span_length, overlap_length, x_colname = "x", y_colnam
 		coord_sliced_list.append((xmin_sliced, xmax_sliced, ymin_sliced, ymax_sliced))
 		j = j + span_length - overlap_length
 	ymin_sliced = j
-<<<<<<< HEAD
 	ymax_sliced = ymax + 1
-=======
-	ymax_sliced = ymax
->>>>>>> 1e8bbff2d5030abf814122911c412f811076177e
 	coord_sliced_list.append((xmin_sliced, xmax_sliced, ymin_sliced, ymax_sliced))
 	return(coord_sliced_list)
 
@@ -176,13 +164,10 @@ def get_hvg(all_count_mat, all_count_genes, all_count_spots, n_top_genes):
 		obs=pd.DataFrame(index=all_count_spots),
 		var=pd.DataFrame(index=all_count_genes),
 	)
-<<<<<<< HEAD
 	# sc.pp.filter_cells(all_count_ad, min_genes=200)
 	# sc.pp.filter_genes(all_count_ad, min_cells=3)
 	# sc.pp.normalize_total(all_count_ad, target_sum=1e4)
 	# sc.pp.log1p(all_count_ad)
-=======
->>>>>>> 1e8bbff2d5030abf814122911c412f811076177e
 	sc.pp.highly_variable_genes(all_count_ad, n_top_genes=n_top_genes, flavor='seurat_v3', span=1.0)
 	hvg = all_count_ad.var[all_count_ad.var.highly_variable].index.tolist()
 	return(hvg)
@@ -230,7 +215,6 @@ def filter_mat_by_var(all_count_mat, all_count_genes, all_count_spots, sub_spots
 															   cells_sub = sub_spot_over0.tolist())
 	return(sub_expr_over0, sub_gene_over_list0, sub_spot_over0_list)
 
-<<<<<<< HEAD
 def cal_corr_within_seg(count_df_sub, seg_res, count_name = 'MIDCount', genes_list = None):
 	count_df_sub_in = count_df_sub[count_df_sub[seg_res].notna()]
 	count_df_sub_in_1 = count_df_sub[count_df_sub['Random_divide'] == 1]
@@ -256,30 +240,6 @@ def cal_corr_within_seg(count_df_sub, seg_res, count_name = 'MIDCount', genes_li
 								   genes_sub = genes_overlap)
 	corr_random = pearson_corr(seg_count_mat_1_overlap.toarray(), seg_count_mat_2_overlap.toarray()).diagonal()
 	return(corr_random, seg_count_cell_1_overlap)
-=======
-def cal_corr_within_seg(count_df_sub, seg_res, genes_list):
-	count_df_sub_in = count_df_sub[count_df_sub[seg_res].notna()]
-	count_df_sub_in_1 = count_df_sub[count_df_sub['Random_divide'] == 1]
-	count_df_sub_in_2 = count_df_sub[count_df_sub['Random_divide'] == 2]
-	gene_seg_cell_1 = count_df_sub_in_1['MIDCount'].groupby([count_df_sub_in_1[seg_res], count_df_sub_in_1['geneID']]).sum()
-	seg_count_mat_1, seg_count_genes_1, seg_count_cells_1 = longdf_to_mat(gene_seg_cell_1)
-	gene_seg_cell_2 = count_df_sub_in_2['MIDCount'].groupby([count_df_sub_in_2[seg_res], count_df_sub_in_2['geneID']]).sum()
-	seg_count_mat_2, seg_count_genes_2, seg_count_cells_2 = longdf_to_mat(gene_seg_cell_2)
-	genes_overlap = list((set(genes_list) & set(seg_count_genes_1)) & set(seg_count_genes_2))
-	cells_overlap = list(set(seg_count_cells_1) & set(seg_count_cells_2))
-	seg_count_mat_1_overlap = sub_mat(mat = seg_count_mat_1, 
-								   genes = seg_count_genes_1, 
-								   cells = seg_count_cells_1, 
-								   cells_sub = cells_overlap, 
-								   genes_sub = genes_overlap)[0]
-	seg_count_mat_2_overlap = sub_mat(mat = seg_count_mat_2, 
-								   genes = seg_count_genes_2, 
-								   cells = seg_count_cells_2, 
-								   cells_sub = cells_overlap, 
-								   genes_sub = genes_overlap)[0]
-	corr_random = pearson_corr(seg_count_mat_1_overlap.toarray(), seg_count_mat_2_overlap.toarray()).diagonal()
-	return(corr_random)
->>>>>>> 1e8bbff2d5030abf814122911c412f811076177e
 
 def cal_corr_within_seg_nucleus(count_df_sub, seg_res, genes_list, count_name = 'MIDCount'):
 	count_df_sub_in = count_df_sub[count_df_sub[seg_res].notna()]

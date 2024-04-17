@@ -33,7 +33,7 @@ html_static_path = ['_static']
 html_css_files = [
     "custom.css",
 ]
-html_logo = "_static/img/Cellist_logo_blue_px.png"
+# html_logo = "_static/img/Cellist_logo_blue_px.png"
 
 nbsphinx_thumbnails = {
     "tutorials/Stereo-seq": "_static/img/thumbnail/Mouse_OB.png",

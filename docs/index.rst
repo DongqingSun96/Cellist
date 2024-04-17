@@ -10,11 +10,10 @@ Welcome to Cellist's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-|PyPI| |PyPIDownloads| |Docs|
+|PyPI| |Docs|
 
 .. |PyPI| image:: https://img.shields.io/pypi/v/cellist
    :target: https://pypi.org/project/cellist
-.. |PyPIDownloads| image:: https://pepy.tech/badge/cellist
 .. |Docs| image:: https://readthedocs.org/projects/cellist/badge/?version=latest
    :target: https://cellist.readthedocs.io
 

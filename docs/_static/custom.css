@@ -14,24 +14,24 @@
   background: #F1FAEE;
 }*/
 
-.navbar {
+/*.navbar {
     padding: .7rem 1.5rem;
     line-height: 2.2rem;
     position:fixed;
     height: 4rem;
-}
+}*/
 
 .navbar .site-name {
   border-bottom:2px solid #a8dadc;
   color: #1D3557;
 }
 
-.navbar .logo {
+/*.navbar .logo {
     height: 3rem;
     min-width: 4rem;
     margin-right: .8rem;
     vertical-align:top
-}
+}*/
 
 .align-default {
   text-align: left;

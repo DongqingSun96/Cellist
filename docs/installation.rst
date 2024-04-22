@@ -16,7 +16,7 @@ System requirements
 * Python >= 3.10
 
 
-We recommend to create an independent conda environment for STRIDE. If users do not have conda, please install Miniconda first:
+We recommend to create an independent conda environment for Cellist. If users do not have conda, please install Miniconda first:
 ::
    
    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
@@ -26,14 +26,14 @@ We recommend to create an independent conda environment for STRIDE. If users do 
 Install the stable version
 >>>>>>>>>>>>>>>>>>>>>>>>>>
 
-Step 1 Prepare conda environment for STRIDE.
+Step 1 Prepare conda environment for Cellist.
 ::::::::::::::::::::::::::::::::::::::::::::
 :: 
 
    conda create -n cellist python=3.10
    conda activate cellist
 
-Step 2 Install STRIDE package from :bash:`pypi`.
+Step 2 Install Cellist package from :bash:`pypi`.
 ::::::::::::::::::::::::::::::::::::::::::::::::
 ::
 
@@ -43,27 +43,27 @@ Step 2 Install STRIDE package from :bash:`pypi`.
 Install the developing version
 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-Step 1 Prepare conda environment for STRIDE.
+Step 1 Prepare conda environment for Cellist.
 ::::::::::::::::::::::::::::::::::::::::::::
 :: 
 
    conda create -n cellist python=3.10
    conda activate cellist
 
-Step 2 Download STRIDE package from github.
+Step 2 Download Cellist package from github.
 :::::::::::::::::::::::::::::::::::::::::::
 ::
 
    git clone https://github.com/wanglabtongji/Cellist.git
 
-Step 3 Install dependencies of STRIDE.
+Step 3 Install dependencies of Cellist.
 ::::::::::::::::::::::::::::::::::::::
 ::
 
    cd Cellist
    pip install -r requirements.txt
 
-Step 4 Install STRIDE.
+Step 4 Install Cellist.
 ::::::::::::::::::::::
 ::
   

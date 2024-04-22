@@ -1,4 +1,9 @@
 # Cellist
+
+![PyPI](https://img.shields.io/pypi/v/cellist)
+![Downloads](https://pepy.tech/badge/cellist)
+![Documentation Status](https://readthedocs.org/projects/cellist/badge/?version=latest)
+
 Cell identification in high-resolution Spatial Transcriptomics
 
 Cellist is a computational method to perform cell segmentation on high-resolution spatial transcriptomics (ST) data, including sequncing-based (e.g. Stereo-seq and Seq-Scope) and imaging-based (e.g. seqFISH+ and STARmap) technologies.

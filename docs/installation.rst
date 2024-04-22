@@ -67,4 +67,4 @@ Step 4 Install Cellist.
 ::::::::::::::::::::::
 ::
   
-   python setup.py install
+   pip install .

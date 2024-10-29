@@ -2,7 +2,7 @@
 # @Author: dongqing
 # @Date:   2023-09-13 15:02:14
 # @Last Modified by:   dongqing
-# @Last Modified time: 2024-04-17 17:17:03
+# @Last Modified time: 2024-10-26 20:59:23
 
 
 import gc
@@ -79,6 +79,8 @@ def CellistParser(subparsers):
         "Default: HVG. ")
     group_model.add_argument("--iteration", dest = "iter_or_not", action = "store_true", 
         help = "Iteration or not. If set, Cellist will assign non-nuclei spots iteratively with cell expression and centroid updated. ")
+    group_model.add_argument("--multi-step", dest = "multi_step", type = int, default = None,
+        help = "Multi-step mode. If set, Cellist will assign non-nuclei spots iteratively with cell expression and centroid updated. ")
     
     group_output = parser.add_argument_group("Output arguments")
     group_output.add_argument("--outdir", dest = "out_dir", default = "",help = "Output directory.")
@@ -94,10 +96,10 @@ def Update_cell_expr(coord_df_slice, count_df_slice, count_name):
     expr_mat, gene_list, cell_list = get_cell_mat(count_df_seg = count_df_slice, seg_res = 'Cellist', count_name = count_name)
     return(expr_mat, gene_list, cell_list)
 
-def Assign_nonnucleispot(cell_expr_slice_array, phy_cell_centroid, nonnucl_enhanced_array, nonnucl_phy_coord_df,
+def Assign_nonnucleispot(cell_expr_slice_array, phy_cell_centroid, nonnucl_enhanced_array_filtered, nonnucl_phy_coord_df,
     coord_df_slice, max_dist_slice_scaled, alpha, sigma, beta, prob_cutoff):
     # nonnucl_spot_centroid_KLD = KL_divergence(nonnucl_enhanced_array.T, cell_expr_slice_array.T)
-    nonnucl_spot_centroid_corr = pearson_corr(nonnucl_enhanced_array, cell_expr_slice_array)
+    nonnucl_spot_centroid_corr = pearson_corr(nonnucl_enhanced_array_filtered, cell_expr_slice_array)
     nonnucl_spot_centroid_corr[np.isnan(nonnucl_spot_centroid_corr)] = -1
     nonnucl_spot_centroid_dist_phy = distance.cdist(nonnucl_phy_coord_df, phy_cell_centroid, 'euclidean')
     P_dist = nonnucl_spot_centroid_dist_phy - max_dist_slice_scaled
@@ -105,26 +107,23 @@ def Assign_nonnucleispot(cell_expr_slice_array, phy_cell_centroid, nonnucl_enhan
     # R = np.exp(-(alpha*nonnucl_spot_centroid_KLD + (1-alpha)*nonnucl_spot_centroid_dist_phy + beta*np.square(P_dist))/sigma)
     R = np.exp(-(alpha*(1-nonnucl_spot_centroid_corr) + (1-alpha)*nonnucl_spot_centroid_dist_phy + beta*np.square(P_dist))/sigma)
     # prob_cut = np.exp(-(alpha*1 + (1-alpha)*max_dist_slice_scaled*diffusion_rate + beta*max_dist_slice_scaled*(diffusion_rate - 1))/sigma)
+    expr_loss = alpha*(1-nonnucl_spot_centroid_corr)
+    dist_loss = (1-alpha)*nonnucl_spot_centroid_dist_phy
+    regularization = sigma*np.log(R + 0.01)
+    penalty = beta*np.square(P_dist)
+    loss = expr_loss + dist_loss + regularization + penalty
+    obj = np.nansum(np.multiply(R, loss))
     R[R < prob_cutoff] = 0
     R_sum = np.array(np.nansum(R, axis = 1).tolist()*R.shape[1]).reshape(R.shape, order = 'F')
     R_norm = np.divide(R, R_sum)
+    R_norm[np.isnan(R_norm)] = 0
     # calculate objective function
     # expr_loss = alpha*nonnucl_spot_centroid_KLD
-    expr_loss = alpha*(1-nonnucl_spot_centroid_corr)
-    dist_loss = (1-alpha)*nonnucl_spot_centroid_dist_phy
-    regularization = sigma*np.log(R_norm)
-    penalty = beta*np.square(P_dist)
-    loss = expr_loss + dist_loss + regularization + penalty
-    obj = np.nansum(np.multiply(R_norm, loss))
     nonnucl_phy_coord_df.loc[:, 'Cellist'] = phy_cell_centroid.index[np.argmax(R_norm, axis = 1)]
     nonnucl_phy_coord_df.loc[:, 'Cellist_prob'] = R_norm.max(axis = 1)
-    coord_df_slice.loc[:, 'Cellist'] = coord_df_slice['Watershed'].tolist()
-    coord_df_slice.loc[nonnucl_phy_coord_df.index.tolist(), "Cellist"] = nonnucl_phy_coord_df['Cellist'].tolist()
-    coord_df_slice.loc[:, 'Cellist_prob'] = 1
-    coord_df_slice.loc[nonnucl_phy_coord_df.index.tolist(), "Cellist_prob"] = nonnucl_phy_coord_df['Cellist_prob'].tolist()
-    coord_df_slice.loc[coord_df_slice['Cellist_prob'].isna(), "Cellist"] = np.nan
+    # coord_df_slice.loc[:, 'Cellist'] = coord_df_slice['Watershed'].tolist()
     R_norm_df = pd.DataFrame(R_norm, index = nonnucl_phy_coord_df.index, columns = phy_cell_centroid.index)
-    return(R_norm_df, obj, coord_df_slice)
+    return(R_norm_df, obj, nonnucl_phy_coord_df)
 
 def Soft_assignment(nonnucl_enhanced_array, nonnucl_enhanced_genes, nonnucl_enhanced_spots, 
     coord_df_slice_scaled_df, coord_df_slice, count_df_slice,
@@ -146,20 +145,65 @@ def Soft_assignment(nonnucl_enhanced_array, nonnucl_enhanced_genes, nonnucl_enha
         genes_sub = cell_expr_slice_gene_filtered)
     coord_df_slice_nonnucl_scaled_df = coord_df_slice_scaled_df.loc[nonnucl_enhanced_spots, ('x', 'y')]
     phy_cell_centroid = phy_cell_centroid.loc[[float(i) for i in cell_expr_slice_cell_filtered],:]
-    R_norm, obj, coord_df_slice = Assign_nonnucleispot(
+    R_norm, obj, nonnucl_phy_coord_df = Assign_nonnucleispot(
         cell_expr_slice_array = cell_expr_slice_array_filtered.toarray(),
         phy_cell_centroid = phy_cell_centroid, 
-        nonnucl_enhanced_array = nonnucl_enhanced_array_filtered,
+        nonnucl_enhanced_array_filtered = nonnucl_enhanced_array_filtered,
         nonnucl_phy_coord_df = coord_df_slice_nonnucl_scaled_df,
         coord_df_slice = coord_df_slice, max_dist_slice_scaled = max_dist_slice_scaled,
         alpha = alpha, sigma = sigma, beta = beta, prob_cutoff = prob_cutoff)
+    coord_df_slice.loc[nonnucl_phy_coord_df.index.tolist(), "Cellist"] = nonnucl_phy_coord_df['Cellist'].tolist()
+    coord_df_slice.loc[:, 'Cellist_prob'] = 1
+    coord_df_slice.loc[nonnucl_phy_coord_df.index.tolist(), "Cellist_prob"] = nonnucl_phy_coord_df['Cellist_prob'].tolist()
+    # coord_df_slice.loc[coord_df_slice['Cellist_prob'].isna(), "Cellist"] = np.nan
+    coord_df_slice.loc[coord_df_slice['Cellist_prob'] == 0.0, "Cellist"] = np.nan
+    return(coord_df_slice)
+
+def Soft_assignment_multistep(nonnucl_enhanced_array, nonnucl_enhanced_genes, nonnucl_enhanced_spots, 
+    coord_df_slice_scaled_df, coord_df_slice, count_df_slice,
+    max_dist_slice_scaled, alpha, sigma, beta, multi_step, prob_cutoff):
+    coord_df_slice.loc[:, 'Cellist'] = coord_df_slice['Watershed'].tolist()
+    # not update cell centroid
+    for i in range(multi_step):
+        print('Segmentation %s.' %i)
+        coord_df_slice_scaled_df.loc[:,'Cellist'] = coord_df_slice.loc[:,'Cellist']
+        phy_cell_centroid = Update_centroid(phy_coord_df = coord_df_slice_scaled_df.loc[:, ('x', 'y', 'Cellist')], cluster_col = 'Cellist')
+        count_name = count_df_slice.columns[3]
+        try:
+            cell_expr_slice_array, cell_expr_slice_gene, cell_expr_slice_cell = Update_cell_expr(coord_df_slice = coord_df_slice, count_df_slice = count_df_slice, count_name = count_name)
+        except:
+            return(None)
+        gene_overlap = sorted(list(set(cell_expr_slice_gene) & set(nonnucl_enhanced_genes)))
+        cell_expr_slice_array_filtered, cell_expr_slice_gene_filtered, cell_expr_slice_cell_filtered = sub_mat(
+            mat = cell_expr_slice_array, genes = cell_expr_slice_gene, cells = cell_expr_slice_cell, 
+            genes_sub = gene_overlap)
+        coord_df_slice_nonnucl = coord_df_slice.loc[coord_df_slice['Cellist'].isna(),:]
+        nonnucl_spots = sorted(list(set(nonnucl_enhanced_spots) & set(coord_df_slice_nonnucl.index.tolist())))
+        nonnucl_enhanced_array_filtered, nonnucl_enhanced_genes_filtered, nonnucl_enhanced_spots_filtered = sub_mat(
+            mat = nonnucl_enhanced_array, genes = nonnucl_enhanced_genes, cells = nonnucl_enhanced_spots, 
+            genes_sub = cell_expr_slice_gene_filtered, cells_sub = nonnucl_spots)
+        coord_df_slice_nonnucl_scaled_df = coord_df_slice_scaled_df.loc[nonnucl_enhanced_spots_filtered, ('x', 'y')]
+        phy_cell_centroid = phy_cell_centroid.loc[[float(i) for i in cell_expr_slice_cell_filtered],:]
+        R_norm, obj, nonnucl_phy_coord_df = Assign_nonnucleispot(
+            cell_expr_slice_array = cell_expr_slice_array_filtered.toarray(),
+            phy_cell_centroid = phy_cell_centroid, 
+            nonnucl_enhanced_array_filtered = nonnucl_enhanced_array_filtered,
+            nonnucl_phy_coord_df = coord_df_slice_nonnucl_scaled_df,
+            coord_df_slice = coord_df_slice, max_dist_slice_scaled = max_dist_slice_scaled/(multi_step-i),
+            alpha = alpha, sigma = sigma, beta = beta, prob_cutoff = prob_cutoff)
+        coord_df_slice.loc[nonnucl_phy_coord_df.index.tolist(), "Cellist"] = nonnucl_phy_coord_df['Cellist'].tolist()
+        coord_df_slice.loc[:, 'Cellist_prob'] = 1
+        coord_df_slice.loc[nonnucl_phy_coord_df.index.tolist(), "Cellist_prob"] = nonnucl_phy_coord_df['Cellist_prob'].tolist()
+        # coord_df_slice.loc[coord_df_slice['Cellist_prob'].isna(), "Cellist"] = np.nan
+        coord_df_slice.loc[coord_df_slice['Cellist_prob'] == 0.0, "Cellist"] = np.nan
     return(coord_df_slice)
 
 def Soft_assignment_iter(nonnucl_enhanced_array, nonnucl_enhanced_genes, nonnucl_enhanced_spots, 
     coord_df_slice_scaled_df, coord_df_slice, count_df_slice,
-    max_dist_slice_scaled, alpha, sigma, beta, prob_cutoff, epsilon = 1e-4, max_iter = 25):
+    dist_unit_scaled, alpha, sigma, beta, prob_cutoff, max_iter = 10):
     coord_df_slice.loc[:, 'Cellist'] = coord_df_slice['Watershed'].tolist()
     for i in range(0, max_iter):
+        max_dist_slice_scaled = dist_unit_scaled*(i+1)
         if i > 0:
             obj_old = obj_new
         # update cell centroid
@@ -175,15 +219,17 @@ def Soft_assignment_iter(nonnucl_enhanced_array, nonnucl_enhanced_genes, nonnucl
         cell_expr_slice_array_filtered, cell_expr_slice_gene_filtered, cell_expr_slice_cell_filtered = sub_mat(
             mat = cell_expr_slice_array, genes = cell_expr_slice_gene, cells = cell_expr_slice_cell, 
             genes_sub = gene_overlap)
+        coord_df_slice_nonnucl = coord_df_slice.loc[coord_df_slice['Cellist'].isna(),:]
+        nonnucl_spots = sorted(list(set(nonnucl_enhanced_spots) & set(coord_df_slice_nonnucl.index.tolist())))
         nonnucl_enhanced_array_filtered, nonnucl_enhanced_genes_filtered, nonnucl_enhanced_spots_filtered = sub_mat(
             mat = nonnucl_enhanced_array, genes = nonnucl_enhanced_genes, cells = nonnucl_enhanced_spots, 
-            genes_sub = cell_expr_slice_gene_filtered)
-        coord_df_slice_nonnucl_scaled_df = coord_df_slice_scaled_df.loc[nonnucl_enhanced_spots, ('x', 'y')]
+            genes_sub = cell_expr_slice_gene_filtered, cells_sub = nonnucl_spots)
+        coord_df_slice_nonnucl_scaled_df = coord_df_slice_scaled_df.loc[nonnucl_enhanced_spots_filtered, ('x', 'y')]
         phy_cell_centroid = phy_cell_centroid.loc[[float(i) for i in cell_expr_slice_cell_filtered],:]
-        R_norm, obj, coord_df_slice = Assign_nonnucleispot(
+        R_norm, obj, nonnucl_phy_coord_df = Assign_nonnucleispot(
             cell_expr_slice_array = cell_expr_slice_array_filtered.toarray(),
             phy_cell_centroid = phy_cell_centroid, 
-            nonnucl_enhanced_array = nonnucl_enhanced_array_filtered,
+            nonnucl_enhanced_array_filtered = nonnucl_enhanced_array_filtered,
             nonnucl_phy_coord_df = coord_df_slice_nonnucl_scaled_df,
             coord_df_slice = coord_df_slice, max_dist_slice_scaled = max_dist_slice_scaled,
             alpha = alpha, sigma = sigma, beta = beta, prob_cutoff = prob_cutoff)
@@ -191,9 +237,16 @@ def Soft_assignment_iter(nonnucl_enhanced_array, nonnucl_enhanced_genes, nonnucl
         print('Iteration: %s, loss: %s' %(i, obj_new))
         if i > 0:
             obj_change = obj_old - obj_new
-            if obj_change > 0 and obj_change/obj_old < epsilon:
+            if obj_change < 0:
                 print('Convereged')
                 break
+        coord_df_slice.loc[nonnucl_phy_coord_df.index.tolist(), "Cellist"] = nonnucl_phy_coord_df['Cellist'].tolist()
+        coord_df_slice.loc[:, 'Cellist_prob'] = 1
+        coord_df_slice.loc[nonnucl_phy_coord_df.index.tolist(), "Cellist_prob"] = nonnucl_phy_coord_df['Cellist_prob'].tolist()
+        # coord_df_slice.loc[coord_df_slice['Cellist_prob'].isna(), "Cellist"] = np.nan
+        coord_df_slice.loc[coord_df_slice['Cellist_prob'] == 0.0, "Cellist"] = np.nan
+        # draw_segmentation(coord_df_sub = coord_df_slice, seg_res = "Cellist", out_prefix = out_prefix + "_sub_slice_iter%s" %(i), 
+        #     out_dir = out_dir, x = "x", y = "y", figsize = (10, 10))
     if i == (max_iter - 1):
         print('Max iteration')
     return(coord_df_slice)
@@ -201,7 +254,7 @@ def Soft_assignment_iter(nonnucl_enhanced_array, nonnucl_enhanced_genes, nonnucl
 def Soft_assignment_slice(count_df_patch, coord_df_patch, props_df_patch,
     all_count_mat, all_count_genes, all_count_spots,
     xmin_cur, xmax_cur, ymin_cur, ymax_cur, selected_genes, max_dist = 15, resolution = 0.5,
-    alpha = 0.8, out_dir = ".", sigma = 1.0, beta = 10, iter_or_not = False, prob_cutoff = 0.7, neigh_dist = 2.5, epsilon = 1e-4, max_iter = 25):
+    alpha = 0.8, out_dir = ".", sigma = 1.0, beta = 10, iter_or_not = False, multi_step = None, prob_cutoff = 0.7, neigh_dist = 2.5, max_iter = 10):
     coord_df_slice = coord_df_patch.loc[(coord_df_patch['x'] >= xmin_cur) & (coord_df_patch['x'] < xmax_cur) &
                                 (coord_df_patch['y'] >= ymin_cur) & (coord_df_patch['y'] < ymax_cur) , :]
     count_df_slice = count_df_patch.loc[(count_df_patch['x'] >= xmin_cur) & (count_df_patch['x'] < xmax_cur) &
@@ -254,7 +307,19 @@ def Soft_assignment_slice(count_df_patch, coord_df_patch, props_df_patch,
                         max_dist_slice = 1.5*props_df_slice['equivalent_diameter_area'].median()
                     max_dist_slice_scaled = max_dist_slice/dist_scaler
                     if iter_or_not:
+                        dist_unit_scaled = 5/dist_scaler
                         coord_df_slice = Soft_assignment_iter(
+                            nonnucl_enhanced_array = spot_expr_slice_filter_enhanced_array_nonnucl,
+                            nonnucl_enhanced_genes = spot_expr_slice_filter_enhanced_array_nonnucl_gene,
+                            nonnucl_enhanced_spots = spot_expr_slice_filter_enhanced_array_nonnucl_spot,
+                            coord_df_slice_scaled_df = coord_df_slice_scaled_df, 
+                            coord_df_slice = coord_df_slice,
+                            count_df_slice = count_df_slice, 
+                            dist_unit_scaled = dist_unit_scaled,
+                            alpha = alpha, sigma = sigma, beta = beta, 
+                            max_iter = max_iter, prob_cutoff = prob_cutoff)
+                    elif multi_step:
+                        coord_df_slice = Soft_assignment_multistep(
                             nonnucl_enhanced_array = spot_expr_slice_filter_enhanced_array_nonnucl,
                             nonnucl_enhanced_genes = spot_expr_slice_filter_enhanced_array_nonnucl_gene,
                             nonnucl_enhanced_spots = spot_expr_slice_filter_enhanced_array_nonnucl_spot,
@@ -263,7 +328,8 @@ def Soft_assignment_slice(count_df_patch, coord_df_patch, props_df_patch,
                             count_df_slice = count_df_slice, 
                             max_dist_slice_scaled = max_dist_slice_scaled,
                             alpha = alpha, sigma = sigma, beta = beta, 
-                            epsilon = epsilon, max_iter = max_iter, prob_cutoff = prob_cutoff)
+                            multi_step = multi_step,
+                            prob_cutoff = prob_cutoff)
                     else:
                         coord_df_slice = Soft_assignment(
                             nonnucl_enhanced_array = spot_expr_slice_filter_enhanced_array_nonnucl,
@@ -344,7 +410,7 @@ def Write_patch(count_df, coord_df, props_df, nucleus_expr_mat, nucleus_gene, nu
 
 def Soft_assignment_patch(platform, resolution, props_file_patch, coord_file_patch, all_spot_count_h5_file_patch, count_file_patch,
     out_dir, num_workers, 
-    alpha, sigma, beta, gene_use, max_dist, iter_or_not, prob_cutoff, neigh_dist):
+    alpha, sigma, beta, gene_use, max_dist, iter_or_not, multi_step, prob_cutoff, neigh_dist):
     props_df_patch = pd.read_csv(props_file_patch, sep = "\t", header = 0, index_col = 0)
     coord_df_patch = pd.read_csv(coord_file_patch, sep = "\t", header = 0, index_col = 0)
     count_df_patch = pd.read_csv(count_file_patch, sep = "\t", header = 0)
@@ -365,7 +431,7 @@ def Soft_assignment_patch(platform, resolution, props_file_patch, coord_file_pat
             xmin_slice, xmax_slice, ymin_slice, ymax_slice = coord_tuple
             arg_tuple = (count_df_patch, coord_df_patch, props_df_patch, spot_expr_patch_filter, 
                 spot_gene_patch_filter, spot_patch, xmin_slice, xmax_slice, ymin_slice, ymax_slice, 
-                selected_genes, max_dist, resolution, alpha, out_dir, sigma, beta, iter_or_not, prob_cutoff, neigh_dist)
+                selected_genes, max_dist, resolution, alpha, out_dir, sigma, beta, iter_or_not, multi_step, prob_cutoff, neigh_dist)
             res_list.append(executor.submit(Soft_assignment_slice, *arg_tuple))
         done, not_done = concurrent.futures.wait(res_list, timeout=None)
         tmp_file_list = [future.result() for future in done]
@@ -409,7 +475,7 @@ def Write_tmp_files(count_df_patch, coord_df_patch, props_df_patch, spot_expr_pa
 
 def Cellist(platform, resolution, props_file, nucleus_count_h5_file, watershed_coord_file, all_spot_count_h5_file, spot_expr_file,
     patch_data_dir, num_workers,
-    alpha, sigma, beta, gene_use, max_dist, iter_or_not, prob_cutoff, neigh_dist, out_dir, out_prefix):
+    alpha, sigma, beta, gene_use, max_dist, iter_or_not, multi_step, prob_cutoff, neigh_dist, out_dir, out_prefix):
     # ----------- output prefix ----------
     if platform == 'barcoding':
         patch_size = 1100
@@ -417,7 +483,7 @@ def Cellist(platform, resolution, props_file, nucleus_count_h5_file, watershed_c
     elif platform == 'imaging':
         patch_size = 2200
         stride_length = 100
-    out_para = "alpha_%s_sigma_%s_beta_%s_gene_%s_dist_%s_iter_%s_prob_%s_neigh_%s" %(alpha, sigma, beta, gene_use, max_dist, iter_or_not, prob_cutoff, neigh_dist)
+    out_para = "alpha_%s_sigma_%s_beta_%s_gene_%s_dist_%s_iter_%s_multistep_%s_prob_%s_neigh_%s" %(alpha, sigma, beta, gene_use, max_dist, iter_or_not, multi_step, prob_cutoff, neigh_dist)
     out_dir = os.path.join(out_dir, out_para)
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
@@ -472,7 +538,7 @@ def Cellist(platform, resolution, props_file, nucleus_count_h5_file, watershed_c
             count_file_patch = os.path.join(patch_data_dir, "%s_count.txt" %patch_prefix)
             arg_tuple_patch = (platform, resolution, props_file_patch, coord_file_patch, all_spot_count_h5_file_patch, count_file_patch,
                 out_dir, num_workers, 
-                alpha, sigma, beta, gene_use, max_dist, iter_or_not, prob_cutoff, neigh_dist)
+                alpha, sigma, beta, gene_use, max_dist, iter_or_not, multi_step, prob_cutoff, neigh_dist)
             patch_res_list.append(executor_patch.submit(Soft_assignment_patch, *arg_tuple_patch))
         done_patch, not_done_patch = concurrent.futures.wait(patch_res_list, timeout=None)
         for future in done_patch:
@@ -519,6 +585,7 @@ def Cellist(platform, resolution, props_file, nucleus_count_h5_file, watershed_c
         'gene_use': gene_use, 
         'max_dist': max_dist, 
         'iter_or_not': iter_or_not, 
+        'multi_step': multi_step,
         'prob_cutoff': prob_cutoff,
         'cell_num': cell_num,
         'nspot_nucleus': nspot_nucleus,
@@ -561,8 +628,9 @@ if __name__ == '__main__':
     beta = parser.beta
     gene_use = parser.gene_use
     iter_or_not = parser.iter_or_not
+    multi_step = parser.multi_step
     out_dir = parser.out_dir
     out_prefix = parser.out_prefix
     Cellist(platform, resolution, props_file, nucleus_count_h5_file, watershed_coord_file, all_spot_count_h5_file, spot_expr_file,
-        patch_data_dir, num_workers, alpha, sigma, beta, gene_use, max_dist, iter_or_not, prob_cutoff, neigh_dist,
+        patch_data_dir, num_workers, alpha, sigma, beta, gene_use, max_dist, iter_or_not, multi_step, prob_cutoff, neigh_dist,
         out_dir, out_prefix)

@@ -52,6 +52,7 @@ def main():
         beta = args.beta
         gene_use = args.gene_use
         iter_or_not = args.iter_or_not
+        multi_step = args.multi_step
         out_dir = args.out_dir
         out_prefix = args.out_prefix
         Cellist(platform = platform, resolution = resolution, props_file = props_file, nucleus_count_h5_file = nucleus_count_h5_file, 
@@ -59,7 +60,7 @@ def main():
             spot_expr_file = spot_expr_file, patch_data_dir = patch_data_dir, num_workers = num_workers, 
             alpha = alpha, sigma = sigma, beta = beta, 
             gene_use = gene_use, max_dist = max_dist, 
-            iter_or_not = iter_or_not, prob_cutoff = prob_cutoff, neigh_dist = neigh_dist,
+            iter_or_not = iter_or_not, multi_step = multi_step, prob_cutoff = prob_cutoff, neigh_dist = neigh_dist,
             out_dir = out_dir, out_prefix = out_prefix)
     elif args.subcommand == "align":
         gem_path = args.spot_expr_file

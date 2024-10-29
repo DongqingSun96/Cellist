@@ -2,7 +2,7 @@
 # @Author: dongqing
 # @Date:   2023-09-13 15:02:14
 # @Last Modified by:   dongqing
-# @Last Modified time: 2024-10-26 20:59:23
+# @Last Modified time: 2024-10-29 14:37:21
 
 
 import gc
@@ -237,7 +237,7 @@ def Soft_assignment_iter(nonnucl_enhanced_array, nonnucl_enhanced_genes, nonnucl
         print('Iteration: %s, loss: %s' %(i, obj_new))
         if i > 0:
             obj_change = obj_old - obj_new
-            if obj_change < 0:
+            if obj_change < 0 and i > 3:
                 print('Convereged')
                 break
         coord_df_slice.loc[nonnucl_phy_coord_df.index.tolist(), "Cellist"] = nonnucl_phy_coord_df['Cellist'].tolist()

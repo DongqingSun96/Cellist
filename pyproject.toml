@@ -34,6 +34,7 @@ dependencies = [
     "spateo-release == 1.0.2",
     "pyvista == 0.42",
     "leidenalg == 0.10.2",
+    "cellpose==3.1.1.1",
     "sklearn-ann",
     "annoy"
 ]

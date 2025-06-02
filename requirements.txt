@@ -12,3 +12,4 @@ tables>=3.7.0
 spateo-release==1.0.2
 leidenalg==0.10.2
 sklearn-ann
+cellpose==3.1.1.1

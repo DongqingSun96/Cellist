@@ -32,15 +32,17 @@ For full installation and usage of Cellist, please refer to the [documentation](
 ## Usage
 ```bash
 cellist --help
-usage: cellist [-h] [-v] {seg,align,watershed,impute} ...
+usage: cellist [-h] [-v] {seg,align,watershed,cellpose,impute} ...
 
-Cellist (Cell identification in high-resolution Spatial Transcriptomics) is a cell segmentation tool for high-resolution spatial transcriptomics.
+Cellist (Cell identification in high-resolution Spatial Transcriptomics) is a cell segmentation tool for high-
+resolution spatial transcriptomics.
 
 positional arguments:
-  {seg,align,watershed,impute}
+  {seg,align,watershed,cellpose,impute}
     seg                 Run Cellist segmentation on high-resolution spatial transcriptomics.
     align               Refine alignment between image and spatial transcriptomics.
     watershed           Run initial watershed segmentation on the staining image.
+    cellpose            Run initial cellpose segmentation on the staining image.
     impute              Perform spatially-aware gene imputation within each cluster.
 
 optional arguments:

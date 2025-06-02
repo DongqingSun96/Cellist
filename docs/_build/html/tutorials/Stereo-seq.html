@@ -2,7 +2,7 @@
 <html  lang="en">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+    <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="viewport" content="width=device-width, initial-scale=1" />
 
       <title>Mouse olfactory bulb (Stereo-seq)</title>
     
@@ -12,9 +12,9 @@
           <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
       
       <!-- sphinx script_files -->
-        <script src="../_static/documentation_options.js?v=8d563738"></script>
-        <script src="../_static/doctools.js?v=9a2dae69"></script>
-        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=af2ce170"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
 
       
@@ -33,7 +33,7 @@
     <div class="theme-container" :class="pageClasses"><navbar @toggle-sidebar="toggleSidebar">
   <router-link to="../index.html" class="home-link">
     
-      <img class="logo" src="../../_static/Cellist_logo_blue_px.png" alt="logo"/>
+      <span class="site-name">Cellist</span>
     
   </router-link>
 
@@ -178,10 +178,10 @@
           <div class="content" role="main" v-pre>
             
   <section id="mouse-olfactory-bulb-stereo-seq">
-<h1>Mouse olfactory bulb (Stereo-seq)<a class="headerlink" href="#mouse-olfactory-bulb-stereo-seq" title="Link to this heading">¶</a></h1>
+<h1>Mouse olfactory bulb (Stereo-seq)<a class="headerlink" href="#mouse-olfactory-bulb-stereo-seq" title="Permalink to this heading">¶</a></h1>
 <p>Here we use a mouse olfactory bulb dataset profiled by Stereo-seq (<a class="reference external" href="https://www.sciencedirect.com/science/article/pii/S0092867422003993">Chen et al., Cell, 2022</a>) to demonstrate the usage of Cellist. The original study provides spatial expression and a corresponding ssDNA staining image. Users can download the processed data from <a class="reference external" href="https://github.com/wanglabtongji/Cellist/tree/main/test/Stereoseq_Mouse_OB">here</a>.</p>
 <section id="step-1-registration-between-staining-and-spatial-expression-profile">
-<h2>Step 1 Registration between staining and spatial expression profile<a class="headerlink" href="#step-1-registration-between-staining-and-spatial-expression-profile" title="Link to this heading">¶</a></h2>
+<h2>Step 1 Registration between staining and spatial expression profile<a class="headerlink" href="#step-1-registration-between-staining-and-spatial-expression-profile" title="Permalink to this heading">¶</a></h2>
 <p>While the images are initially aligned with RNA coordinates, minor misalignments may still occur. The <code class="code highlight bash docutils literal highlight-bash">align</code> function could be used to refine the alignment, which integrates the <code class="code highlight bash docutils literal highlight-bash">refine_alignment</code> function with the rigid mode in <a class="reference external" href="https://spateo-release.readthedocs.io/en/latest/technicals/cell_segmentation.html#alignment-of-stain-and-rna-coordinates">Spateo</a>.</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>cellist<span class="w"> </span>align<span class="w"> </span>--gem<span class="w"> </span>Data/DP8400013846TR_F5.bin1.olfactorybulb_cropped.gem<span class="w"> </span><span class="se">\</span>
 --tif<span class="w"> </span>Data/ssDNA_cropped_3625_9545_950_5630.tiff<span class="w"> </span><span class="se">\</span>
@@ -193,7 +193,7 @@
 <a class="reference internal image-reference" href="../_images/DP8400013846TR_F5_alignment_compare.png"><img alt="../_images/DP8400013846TR_F5_alignment_compare.png" class="align-center" src="../_images/DP8400013846TR_F5_alignment_compare.png" style="width: 100%;" /></a>
 </section>
 <section id="step-2-watershed-segmentation-of-nucleus">
-<h2>Step 2 Watershed segmentation of nucleus<a class="headerlink" href="#step-2-watershed-segmentation-of-nucleus" title="Link to this heading">¶</a></h2>
+<h2>Step 2 Watershed segmentation of nucleus<a class="headerlink" href="#step-2-watershed-segmentation-of-nucleus" title="Permalink to this heading">¶</a></h2>
 <p>The initial nucleus segmentation is required for refined cell segmentation by Cellist. In Cellist, we utilize the watershed algorithm to segment nuclei in the ssDNA image, which is implemented by the function of <code class="code highlight bash docutils literal highlight-bash">watershed</code>.</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>cellist<span class="w"> </span>watershed<span class="w"> </span>--gem<span class="w"> </span>Data/DP8400013846TR_F5.bin1.olfactorybulb_cropped.gem<span class="w"> </span><span class="se">\</span>
 --tif<span class="w"> </span>Result/Alignment/DP8400013846TR_F5_regist_transposed_aligned_by_Spateo.tiff<span class="w"> </span><span class="se">\</span>
@@ -205,19 +205,19 @@
 <a class="reference internal image-reference" href="../_images/DP8400013846TR_F5_cell_boundary.png"><img alt="../_images/DP8400013846TR_F5_cell_boundary.png" class="align-center" src="../_images/DP8400013846TR_F5_cell_boundary.png" style="width: 100%;" /></a>
 </section>
 <section id="step-3-cell-segmentation-by-cellist">
-<h2>Step 3 Cell segmentation by Cellist<a class="headerlink" href="#step-3-cell-segmentation-by-cellist" title="Link to this heading">¶</a></h2>
+<h2>Step 3 Cell segmentation by Cellist<a class="headerlink" href="#step-3-cell-segmentation-by-cellist" title="Permalink to this heading">¶</a></h2>
 <p>With nucleus segmentation completed, the next step is to expand the nucleus labels to include the cytoplasm, namely, cell segmentation. In cellist, we take both expression similarity and spatial proximity into consideration when assigning non-nucleus spots to labelled nuclei.</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>cellist<span class="w"> </span>seg<span class="w"> </span>--platform<span class="w"> </span>barcoding<span class="w"> </span><span class="se">\</span>
 --resolution<span class="w"> </span><span class="m">0</span>.5<span class="w"> </span><span class="se">\</span>
 --gem<span class="w"> </span>Data/DP8400013846TR_F5.bin1.olfactorybulb_cropped.gem<span class="w"> </span><span class="se">\</span>
 --spot-count-h5<span class="w"> </span>Result/Watershed/DP8400013846TR_F5_bin1.h5<span class="w"> </span><span class="se">\</span>
---nuclei-prop<span class="w"> </span>Result/Watershed/DP8400013846TR_F5_watershed_nucleus_property.txt<span class="w"> </span><span class="se">\</span>
---nuclei-count-h5<span class="w"> </span>Result/Watershed/DP8400013846TR_F5_waterhsed_segmentation_cell_count.h5<span class="w"> </span><span class="se">\</span>
---watershed-seg<span class="w"> </span>Result/Watershed/DP8400013846TR_F5_watershed_nucleus_coord.txt<span class="w"> </span><span class="se">\</span>
+--nucleus-seg-method<span class="w"> </span>Watershed<span class="w"> </span><span class="se">\</span>
+--nucleus-prop<span class="w"> </span>Result/Watershed/DP8400013846TR_F5_watershed_nucleus_property.txt<span class="w"> </span><span class="se">\</span>
+--nucleus-count-h5<span class="w"> </span>Result/Watershed/DP8400013846TR_F5_waterhsed_segmentation_cell_count.h5<span class="w"> </span><span class="se">\</span>
+--nucleus-seg<span class="w"> </span>Result/Watershed/DP8400013846TR_F5_watershed_nucleus_coord.txt<span class="w"> </span><span class="se">\</span>
 --nworkers<span class="w"> </span><span class="m">16</span><span class="w"> </span><span class="se">\</span>
---cell-diameter<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="se">\</span>
+--cell-radius<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="se">\</span>
 --spot-imputation-distance<span class="w"> </span><span class="m">2</span>.5<span class="w"> </span><span class="se">\</span>
---prob-cutoff<span class="w"> </span><span class="m">0</span>.6<span class="w"> </span><span class="se">\</span>
 --outdir<span class="w"> </span>Result/Cellist<span class="w"> </span><span class="se">\</span>
 --outprefix<span class="w"> </span>DP8400013846TR_F5
 </pre></div>
@@ -256,17 +256,6 @@ in the above expression file.</p></td>
 </tbody>
 </table>
 </section>
-<section id="step-4-spatially-aware-expression-imputation-at-the-cell-level-optional">
-<h2>Step 4 Spatially-aware expression imputation at the cell level (Optional)<a class="headerlink" href="#step-4-spatially-aware-expression-imputation-at-the-cell-level-optional" title="Link to this heading">¶</a></h2>
-<p>In certain cases, the gene coverage within each cell may still be insufficient for in-depth single-cell analyses. To mitigate this issue, Cellist offers an optional imputation function that recovers missing gene expression at the cell level, leveraging information from neighboring cells close in both physical space and low dimensional embedding learned from expression data.</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>cellist<span class="w"> </span>impute<span class="w"> </span>--expr<span class="w"> </span>Result/Cellist/alpha_0.8_sigma_1.0_beta_10_gene_HVG_dist_15_iter_False_prob_0.6_neigh_2.5/DP8400013846TR_F5_segmentation_cell_count.h5<span class="w"> </span><span class="se">\</span>
---spatial<span class="w"> </span>Result/Cellist/alpha_0.8_sigma_1.0_beta_10_gene_HVG_dist_15_iter_False_prob_0.6_neigh_2.5/DP8400013846TR_F5_segmentation_cell_coord.txt<span class="w"> </span><span class="se">\</span>
---nworkers<span class="w"> </span><span class="m">8</span><span class="w"> </span><span class="se">\</span>
---outdir<span class="w"> </span>Result/Imputation_louvain<span class="w"> </span><span class="se">\</span>
---outprefix<span class="w"> </span>DP8400013846TR_F5
-</pre></div>
-</div>
-</section>
 </section>
 
 
@@ -284,7 +273,7 @@ in the above expression file.</p></td>
 </ul><div class="footer" role="contentinfo">
       &#169; Copyright 2024, Wang Lab at Tongji.
     <br>
-    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 7.3.5 with <a href="https://github.com/schettino72/sphinx_press_theme">Press Theme</a> 0.9.1.
+    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 7.1.2 with <a href="https://github.com/schettino72/sphinx_press_theme">Press Theme</a> 0.9.1.
 </div>
             </div>
           </div>

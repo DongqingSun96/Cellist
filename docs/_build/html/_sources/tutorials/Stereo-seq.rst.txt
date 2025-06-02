@@ -52,13 +52,13 @@ With nucleus segmentation completed, the next step is to expand the nucleus labe
    --resolution 0.5 \
    --gem Data/DP8400013846TR_F5.bin1.olfactorybulb_cropped.gem \
    --spot-count-h5 Result/Watershed/DP8400013846TR_F5_bin1.h5 \
-   --nuclei-prop Result/Watershed/DP8400013846TR_F5_watershed_nucleus_property.txt \
-   --nuclei-count-h5 Result/Watershed/DP8400013846TR_F5_waterhsed_segmentation_cell_count.h5 \
-   --watershed-seg Result/Watershed/DP8400013846TR_F5_watershed_nucleus_coord.txt \
+   --nucleus-seg-method Watershed \
+   --nucleus-prop Result/Watershed/DP8400013846TR_F5_watershed_nucleus_property.txt \
+   --nucleus-count-h5 Result/Watershed/DP8400013846TR_F5_waterhsed_segmentation_cell_count.h5 \
+   --nucleus-seg Result/Watershed/DP8400013846TR_F5_watershed_nucleus_coord.txt \
    --nworkers 16 \
-   --cell-diameter 15 \
+   --cell-radius 15 \
    --spot-imputation-distance 2.5 \
-   --prob-cutoff 0.6 \
    --outdir Result/Cellist \
    --outprefix DP8400013846TR_F5
 
@@ -83,18 +83,5 @@ The results of :bash:`seg` will be stored in the :bash:`Result/Cellist` floder, 
 +-----------------------------------------------+-------------------------------------------------------------------------------+
 | parameters.json                               | Parameters to run :bash:`cellist` and statistics of the segmentation results. |
 +-----------------------------------------------+-------------------------------------------------------------------------------+
-
-Step 4 Spatially-aware expression imputation at the cell level (Optional)
->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-In certain cases, the gene coverage within each cell may still be insufficient for in-depth single-cell analyses. To mitigate this issue, Cellist offers an optional imputation function that recovers missing gene expression at the cell level, leveraging information from neighboring cells close in both physical space and low dimensional embedding learned from expression data.
-
-::
-
-   cellist impute --expr Result/Cellist/alpha_0.8_sigma_1.0_beta_10_gene_HVG_dist_15_iter_False_prob_0.6_neigh_2.5/DP8400013846TR_F5_segmentation_cell_count.h5 \
-   --spatial Result/Cellist/alpha_0.8_sigma_1.0_beta_10_gene_HVG_dist_15_iter_False_prob_0.6_neigh_2.5/DP8400013846TR_F5_segmentation_cell_coord.txt \
-   --nworkers 8 \
-   --outdir Result/Imputation_louvain \
-   --outprefix DP8400013846TR_F5
 
 

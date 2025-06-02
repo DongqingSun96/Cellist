@@ -168,13 +168,14 @@ With nucleus segmentation completed, the next step is to expand the nucleus labe
    --resolution 0.1 \
    --gem Result/Preprocess/FOV_0/seqFISH+_NIH3T3_points_RNA_rep1_FOV_0_bin5.txt \
    --spot-count-h5 Result/Preprocess/FOV_0/seqFISH+_NIH3T3_points_RNA_rep1_FOV_0_bin5.h5 \
-   --nuclei-prop Result/Watershed/FOV_0/FOV_0_watershed_nucleus_property.txt \
-   --nuclei-count-h5 Result/Watershed/FOV_0/FOV_0_waterhsed_segmentation_cell_count.h5 \
-   --watershed-seg Result/Watershed/FOV_0/FOV_0_watershed_nucleus_coord.txt \
+   --nucleus-seg-method Watershed \
+   --nucleus-prop Result/Watershed/FOV_0/FOV_0_watershed_nucleus_property.txt \
+   --nucleus-count-h5 Result/Watershed/FOV_0/FOV_0_waterhsed_segmentation_cell_count.h5 \
+   --nucleus-seg Result/Watershed/FOV_0/FOV_0_watershed_nucleus_coord.txt \
    --nworkers 16 \
-   --cell-diameter 18 \
+   --cell-radius 10 \
    --spot-imputation-distance 2.5 \
-   --prob-cutoff 0.1 \
+   --noise-prop 0 \
    --outdir Result/Cellist/FOV_0 \
    --outprefix FOV_0
 

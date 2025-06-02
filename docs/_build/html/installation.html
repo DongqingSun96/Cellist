@@ -2,7 +2,7 @@
 <html  lang="en">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+    <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="viewport" content="width=device-width, initial-scale=1" />
 
       <title>Installation</title>
     
@@ -12,9 +12,9 @@
           <link rel="stylesheet" href="_static/custom.css" type="text/css" />
       
       <!-- sphinx script_files -->
-        <script src="_static/documentation_options.js?v=8d563738"></script>
-        <script src="_static/doctools.js?v=9a2dae69"></script>
-        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=af2ce170"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=4825356b"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
 
       
@@ -33,7 +33,7 @@
     <div class="theme-container" :class="pageClasses"><navbar @toggle-sidebar="toggleSidebar">
   <router-link to="index.html" class="home-link">
     
-      <img class="logo" src="_static/Cellist_logo_blue_px.png" alt="logo"/>
+      <span class="site-name">Cellist</span>
     
   </router-link>
 
@@ -186,60 +186,60 @@
           <div class="content" role="main" v-pre>
             
   <section id="installation">
-<h1>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h1>
+<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this heading">¶</a></h1>
 <section id="system-requirements">
-<h2>System requirements<a class="headerlink" href="#system-requirements" title="Link to this heading">¶</a></h2>
+<h2>System requirements<a class="headerlink" href="#system-requirements" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Linux/Unix</p></li>
 <li><p>Python &gt;= 3.10</p></li>
 </ul>
-<p>We recommend to create an independent conda environment for STRIDE. If users do not have conda, please install Miniconda first:</p>
+<p>We recommend to create an independent conda environment for Cellist. If users do not have conda, please install Miniconda first:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>wget<span class="w"> </span>https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 bash<span class="w"> </span>Miniconda3-latest-Linux-x86_64.sh
 </pre></div>
 </div>
 </section>
 <section id="install-the-stable-version">
-<h2>Install the stable version<a class="headerlink" href="#install-the-stable-version" title="Link to this heading">¶</a></h2>
-<section id="step-1-prepare-conda-environment-for-stride">
-<h3>Step 1 Prepare conda environment for STRIDE.<a class="headerlink" href="#step-1-prepare-conda-environment-for-stride" title="Link to this heading">¶</a></h3>
+<h2>Install the stable version<a class="headerlink" href="#install-the-stable-version" title="Permalink to this heading">¶</a></h2>
+<section id="step-1-prepare-conda-environment-for-cellist">
+<h3>Step 1 Prepare conda environment for Cellist.<a class="headerlink" href="#step-1-prepare-conda-environment-for-cellist" title="Permalink to this heading">¶</a></h3>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>cellist<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.10
 conda<span class="w"> </span>activate<span class="w"> </span>cellist
 </pre></div>
 </div>
 </section>
-<section id="step-2-install-stride-package-from-pypi">
-<h3>Step 2 Install STRIDE package from <code class="code highlight bash docutils literal highlight-bash">pypi</code>.<a class="headerlink" href="#step-2-install-stride-package-from-pypi" title="Link to this heading">¶</a></h3>
+<section id="step-2-install-cellist-package-from-pypi">
+<h3>Step 2 Install Cellist package from <code class="code highlight bash docutils literal highlight-bash">pypi</code>.<a class="headerlink" href="#step-2-install-cellist-package-from-pypi" title="Permalink to this heading">¶</a></h3>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-U<span class="w"> </span>cellist
 </pre></div>
 </div>
 </section>
 </section>
 <section id="install-the-developing-version">
-<h2>Install the developing version<a class="headerlink" href="#install-the-developing-version" title="Link to this heading">¶</a></h2>
+<h2>Install the developing version<a class="headerlink" href="#install-the-developing-version" title="Permalink to this heading">¶</a></h2>
 <section id="id1">
-<h3>Step 1 Prepare conda environment for STRIDE.<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
+<h3>Step 1 Prepare conda environment for Cellist.<a class="headerlink" href="#id1" title="Permalink to this heading">¶</a></h3>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>cellist<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.10
 conda<span class="w"> </span>activate<span class="w"> </span>cellist
 </pre></div>
 </div>
 </section>
-<section id="step-2-download-stride-package-from-github">
-<h3>Step 2 Download STRIDE package from github.<a class="headerlink" href="#step-2-download-stride-package-from-github" title="Link to this heading">¶</a></h3>
+<section id="step-2-download-cellist-package-from-github">
+<h3>Step 2 Download Cellist package from github.<a class="headerlink" href="#step-2-download-cellist-package-from-github" title="Permalink to this heading">¶</a></h3>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/wanglabtongji/Cellist.git
 </pre></div>
 </div>
 </section>
-<section id="step-3-install-dependencies-of-stride">
-<h3>Step 3 Install dependencies of STRIDE.<a class="headerlink" href="#step-3-install-dependencies-of-stride" title="Link to this heading">¶</a></h3>
+<section id="step-3-install-dependencies-of-cellist">
+<h3>Step 3 Install dependencies of Cellist.<a class="headerlink" href="#step-3-install-dependencies-of-cellist" title="Permalink to this heading">¶</a></h3>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>Cellist
 pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements.txt
 </pre></div>
 </div>
 </section>
-<section id="step-4-install-stride">
-<h3>Step 4 Install STRIDE.<a class="headerlink" href="#step-4-install-stride" title="Link to this heading">¶</a></h3>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>setup.py<span class="w"> </span>install
+<section id="step-4-install-cellist">
+<h3>Step 4 Install Cellist.<a class="headerlink" href="#step-4-install-cellist" title="Permalink to this heading">¶</a></h3>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>.
 </pre></div>
 </div>
 </section>
@@ -261,7 +261,7 @@ pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </s
 </ul><div class="footer" role="contentinfo">
       &#169; Copyright 2024, Wang Lab at Tongji.
     <br>
-    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 7.3.5 with <a href="https://github.com/schettino72/sphinx_press_theme">Press Theme</a> 0.9.1.
+    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 7.1.2 with <a href="https://github.com/schettino72/sphinx_press_theme">Press Theme</a> 0.9.1.
 </div>
             </div>
           </div>

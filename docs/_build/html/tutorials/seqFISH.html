@@ -2,7 +2,7 @@
 <html  lang="en">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+    <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="viewport" content="width=device-width, initial-scale=1" />
 
       <title>NIH/3T3 (seqFISH+)</title>
     
@@ -12,9 +12,9 @@
           <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
       
       <!-- sphinx script_files -->
-        <script src="../_static/documentation_options.js?v=8d563738"></script>
-        <script src="../_static/doctools.js?v=9a2dae69"></script>
-        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=af2ce170"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
 
       
@@ -33,7 +33,7 @@
     <div class="theme-container" :class="pageClasses"><navbar @toggle-sidebar="toggleSidebar">
   <router-link to="../index.html" class="home-link">
     
-      <img class="logo" src="../../_static/Cellist_logo_blue_px.png" alt="logo"/>
+      <span class="site-name">Cellist</span>
     
   </router-link>
 
@@ -178,13 +178,13 @@
           <div class="content" role="main" v-pre>
             
   <section id="nih-3t3-seqfish">
-<h1>NIH/3T3 (seqFISH+)<a class="headerlink" href="#nih-3t3-seqfish" title="Link to this heading">¶</a></h1>
+<h1>NIH/3T3 (seqFISH+)<a class="headerlink" href="#nih-3t3-seqfish" title="Permalink to this heading">¶</a></h1>
 <p>Here we demonstrate the application of Cellist on the imaging-based high-resolution platform. The NIH/3T3 seqFISH+ data was derived from the study of <a class="reference external" href="https://www.nature.com/articles/s41586-019-1049-y">Eng et al., Nature, 2019</a>, which profiles 10,000 genes in 7 field of views (FOVs) with auxiliary DAPI staining. Users can download the demo data from <a class="reference external" href="https://github.com/wanglabtongji/Cellist/tree/main/test/seqFISH_NIH3T3">here</a>.</p>
 <section id="step-1-pre-process">
-<h2>Step 1 Pre-process<a class="headerlink" href="#step-1-pre-process" title="Link to this heading">¶</a></h2>
+<h2>Step 1 Pre-process<a class="headerlink" href="#step-1-pre-process" title="Permalink to this heading">¶</a></h2>
 <p>Cellist is initially designed for the barcoding-based high-resolution spatial transcriptomics where each spot captures multiple transcripts. But in the seqFISH+ data of single-molecule resolution, each pixel is around 103 nm. To make the seqFISH+ data suitable for Cellist, transcripts are aggregated within each bin (5 pixels × 5 pixels), treating each bin as a spot akin to Stereo-seq. This process results in binned data with a comparable resolution (~0.5 μm) to Stereo-seq, suitable for Cellist.</p>
 <section id="convert-array-like-data-to-long-data-frame">
-<h3>1. Convert array-like data to long data frame<a class="headerlink" href="#convert-array-like-data-to-long-data-frame" title="Link to this heading">¶</a></h3>
+<h3>1. Convert array-like data to long data frame<a class="headerlink" href="#convert-array-like-data-to-long-data-frame" title="Permalink to this heading">¶</a></h3>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">scipy.io</span> <span class="k">as</span> <span class="nn">sio</span>
@@ -230,7 +230,7 @@
 </div>
 </section>
 <section id="generate-pixel-level-and-bin-level-data-5-pixel-bin">
-<h3>2. Generate pixel-level and bin-level data (5-pixel bin)<a class="headerlink" href="#generate-pixel-level-and-bin-level-data-5-pixel-bin" title="Link to this heading">¶</a></h3>
+<h3>2. Generate pixel-level and bin-level data (5-pixel bin)<a class="headerlink" href="#generate-pixel-level-and-bin-level-data-5-pixel-bin" title="Permalink to this heading">¶</a></h3>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">coord_count_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">res_dir</span><span class="p">,</span> <span class="s1">&#39;seqFISH+_NIH3T3_points_RNA_rep1.txt&#39;</span><span class="p">),</span> <span class="n">sep</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">header</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
 <span class="k">for</span> <span class="n">fov</span> <span class="ow">in</span> <span class="n">coord_count_df</span><span class="p">[</span><span class="s1">&#39;FOV&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">():</span>
    <span class="nb">print</span><span class="p">(</span><span class="n">fov</span><span class="p">)</span>
@@ -280,7 +280,7 @@
 </div>
 </section>
 <section id="convert-ome-tiff-file-to-2d-tiff-image">
-<h3>3. Convert OME-TIFF file to 2D TIFF image<a class="headerlink" href="#convert-ome-tiff-file-to-2d-tiff-image" title="Link to this heading">¶</a></h3>
+<h3>3. Convert OME-TIFF file to 2D TIFF image<a class="headerlink" href="#convert-ome-tiff-file-to-2d-tiff-image" title="Permalink to this heading">¶</a></h3>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pyometiff</span> <span class="kn">import</span> <span class="n">OMETIFFReader</span>
 <span class="kn">from</span> <span class="nn">skimage.io</span> <span class="kn">import</span> <span class="n">imread</span><span class="p">,</span> <span class="n">imsave</span>
 
@@ -302,7 +302,7 @@
 </section>
 </section>
 <section id="step-2-watershed-segmentation-of-nucleus">
-<h2>Step 2 Watershed segmentation of nucleus<a class="headerlink" href="#step-2-watershed-segmentation-of-nucleus" title="Link to this heading">¶</a></h2>
+<h2>Step 2 Watershed segmentation of nucleus<a class="headerlink" href="#step-2-watershed-segmentation-of-nucleus" title="Permalink to this heading">¶</a></h2>
 <p>The initial nucleus segmentation is required for refined cell segmentation by Cellist. In Cellist, we utilize the watershed algorithm to segment nuclei in the DAPI staining image, which is implemented by the function of <code class="code highlight bash docutils literal highlight-bash">watershed</code>. Here we take <cite>FOV_0</cite> as an example.</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>cellist<span class="w"> </span>watershed<span class="w"> </span>--platform<span class="w"> </span>imaging<span class="w"> </span><span class="se">\</span>
 --gem<span class="w"> </span>Result/Preprocess/FOV_0/seqFISH+_NIH3T3_points_RNA_rep1_FOV_0_bin5.txt<span class="w"> </span><span class="se">\</span>
@@ -315,19 +315,20 @@
 <a class="reference internal image-reference" href="../_images/FOV_0_cell_boundary.png"><img alt="../_images/FOV_0_cell_boundary.png" class="align-center" src="../_images/FOV_0_cell_boundary.png" style="width: 100%;" /></a>
 </section>
 <section id="step-3-cell-segmentation-by-cellist">
-<h2>Step 3 Cell segmentation by Cellist<a class="headerlink" href="#step-3-cell-segmentation-by-cellist" title="Link to this heading">¶</a></h2>
+<h2>Step 3 Cell segmentation by Cellist<a class="headerlink" href="#step-3-cell-segmentation-by-cellist" title="Permalink to this heading">¶</a></h2>
 <p>With nucleus segmentation completed, the next step is to expand the nucleus labels to include the cytoplasm, namely, cell segmentation. In cellist, we take both expression similarity and spatial proximity into consideration when assigning non-nucleus spots to labelled nuclei.</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>cellist<span class="w"> </span>seg<span class="w"> </span>--platform<span class="w"> </span>imaging<span class="w"> </span><span class="se">\</span>
 --resolution<span class="w"> </span><span class="m">0</span>.1<span class="w"> </span><span class="se">\</span>
 --gem<span class="w"> </span>Result/Preprocess/FOV_0/seqFISH+_NIH3T3_points_RNA_rep1_FOV_0_bin5.txt<span class="w"> </span><span class="se">\</span>
 --spot-count-h5<span class="w"> </span>Result/Preprocess/FOV_0/seqFISH+_NIH3T3_points_RNA_rep1_FOV_0_bin5.h5<span class="w"> </span><span class="se">\</span>
---nuclei-prop<span class="w"> </span>Result/Watershed/FOV_0/FOV_0_watershed_nucleus_property.txt<span class="w"> </span><span class="se">\</span>
---nuclei-count-h5<span class="w"> </span>Result/Watershed/FOV_0/FOV_0_waterhsed_segmentation_cell_count.h5<span class="w"> </span><span class="se">\</span>
---watershed-seg<span class="w"> </span>Result/Watershed/FOV_0/FOV_0_watershed_nucleus_coord.txt<span class="w"> </span><span class="se">\</span>
+--nucleus-seg-method<span class="w"> </span>Watershed<span class="w"> </span><span class="se">\</span>
+--nucleus-prop<span class="w"> </span>Result/Watershed/FOV_0/FOV_0_watershed_nucleus_property.txt<span class="w"> </span><span class="se">\</span>
+--nucleus-count-h5<span class="w"> </span>Result/Watershed/FOV_0/FOV_0_waterhsed_segmentation_cell_count.h5<span class="w"> </span><span class="se">\</span>
+--nucleus-seg<span class="w"> </span>Result/Watershed/FOV_0/FOV_0_watershed_nucleus_coord.txt<span class="w"> </span><span class="se">\</span>
 --nworkers<span class="w"> </span><span class="m">16</span><span class="w"> </span><span class="se">\</span>
---cell-diameter<span class="w"> </span><span class="m">18</span><span class="w"> </span><span class="se">\</span>
+--cell-radius<span class="w"> </span><span class="m">10</span><span class="w"> </span><span class="se">\</span>
 --spot-imputation-distance<span class="w"> </span><span class="m">2</span>.5<span class="w"> </span><span class="se">\</span>
---prob-cutoff<span class="w"> </span><span class="m">0</span>.1<span class="w"> </span><span class="se">\</span>
+--noise-prop<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="se">\</span>
 --outdir<span class="w"> </span>Result/Cellist/FOV_0<span class="w"> </span><span class="se">\</span>
 --outprefix<span class="w"> </span>FOV_0
 </pre></div>
@@ -351,7 +352,7 @@
 </ul><div class="footer" role="contentinfo">
       &#169; Copyright 2024, Wang Lab at Tongji.
     <br>
-    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 7.3.5 with <a href="https://github.com/schettino72/sphinx_press_theme">Press Theme</a> 0.9.1.
+    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 7.1.2 with <a href="https://github.com/schettino72/sphinx_press_theme">Press Theme</a> 0.9.1.
 </div>
             </div>
           </div>

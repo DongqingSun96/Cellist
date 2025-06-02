@@ -2,7 +2,7 @@
 # @Author: dongqing
 # @Date:   2024-01-07 19:26:42
 # @Last Modified by:   dongqing
-# @Last Modified time: 2024-04-17 03:43:30
+# @Last Modified time: 2025-04-10 13:52:46
 
 import os, sys
 import argparse
@@ -179,6 +179,8 @@ def Imputation(expr_file, spatial_file, num_workers, out_dir, out_prefix):
         n_samples = data_pca_ct.shape[0]
         n_trees = 50
         k_params = 50
+        if k_params > n_samples:
+            k_params = n_samples
         PCA_tree = BuildTree(data = data_pca_ct, n_trees = n_trees)
         res_list = []
         with concurrent.futures.ThreadPoolExecutor(max_workers = num_workers) as executor:
@@ -189,6 +191,8 @@ def Imputation(expr_file, spatial_file, num_workers, out_dir, out_prefix):
             PCA_result_list = [future.result() for future in done]
         pca_aff_mat_sym = CalAffinityMat(PCA_result_list, n_samples)
         k_params = 50
+        if k_params > n_samples:
+            k_params = n_samples
         Spatial_tree = BuildTree(data = data_spatial_ct, n_trees = n_trees)
         res_list = []
         with concurrent.futures.ThreadPoolExecutor(max_workers = num_workers) as executor:
@@ -213,6 +217,7 @@ def Imputation(expr_file, spatial_file, num_workers, out_dir, out_prefix):
         imputed_mat_list.append(expr_mat_ct_imputed.T)
         cells_list = cells_list + expr_cells_ct
     imputed_mat_merged = hstack(imputed_mat_list)
+    k_params = 50
     expr_mat_imputed_all, expr_genes_imputed_all, expr_cells_imputed_all = sub_mat(imputed_mat_merged, expr_genes_ct, cells_list, genes_sub = expr_genes_all, cells_sub = expr_cells_all)
     out_combined_file = os.path.join(out_dir, "%s_k_params_%s_knn_%s_imputed.h5" %(out_prefix, k_params, knn))
     out_h5ad_file = os.path.join(out_dir, "%s_k_params_%s_knn_%s_imputed_anndata.h5ad" %(out_prefix, k_params, knn))

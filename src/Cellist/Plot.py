@@ -2,7 +2,7 @@
 # @Author: dongqing
 # @Date:   2023-10-14 11:57:10
 # @Last Modified by:   dongqing
-# @Last Modified time: 2023-10-14 12:01:44
+# @Last Modified time: 2025-02-23 16:17:07
 
 
 import pandas as pd
@@ -58,10 +58,8 @@ def draw_segmentation(coord_df_sub, seg_res, out_prefix, out_dir, x = "X_img", y
 def draw_segmentation_prob(coord_df_sub, col_prob, out_prefix, out_dir, x = "X_img", y = "Y_img", figsize = (16, 15)):
     community_seg = coord_df_sub.pivot(index = x, columns = y, values = col_prob)
     row_to_add = list(set(range(coord_df_sub[x].min(), coord_df_sub[x].max() + 1)) - set(community_seg.index))
-    community_seg_row_to_add = community_seg.iloc[range(len(row_to_add)), :]
-    community_seg_row_to_add.index = row_to_add
-    community_seg_row_to_add.loc[:, :] = 0
-    community_seg = pd.concat([community_seg, community_seg_row_to_add], ignore_index=True)
+    community_seg_row_to_add = pd.DataFrame(np.zeros((len(row_to_add), community_seg.shape[1])), index = row_to_add, columns = community_seg.columns)
+    community_seg = pd.concat([community_seg, community_seg_row_to_add])
     community_seg = community_seg.loc[sorted(community_seg.index.tolist()), :]
     col_to_add = list(set(range(coord_df_sub[y].min(), coord_df_sub[y].max() + 1))  - set(community_seg.columns))
     community_seg.loc[:, col_to_add] = np.nan

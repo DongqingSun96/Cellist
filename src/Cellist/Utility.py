@@ -2,7 +2,7 @@
 # @Author: dongqing
 # @Date:   2023-08-26 22:39:03
 # @Last Modified by:   dongqing
-# @Last Modified time: 2024-04-16 13:57:19
+# @Last Modified time: 2025-04-28 20:02:19
 
 import os
 import matplotlib
@@ -14,6 +14,8 @@ import matplotlib.pyplot as plt
 
 from scipy.spatial import KDTree
 from scipy import sparse
+import concurrent.futures
+
 
 def sub_mat(mat, genes, cells, genes_sub = None, cells_sub = None):
 	mat_use = mat
@@ -87,7 +89,9 @@ def pearson_corr(x_array, y_array):
 	ym = y_array - ymean
 	normxm = np.linalg.norm(xm, axis = 0)
 	normym = np.linalg.norm(ym, axis = 0)
-	r = np.dot((xm/normxm).T, ym/normym)
+	x_normalized = xm/normxm
+	y_normalized = ym/normym
+	r = x_normalized.T @ y_normalized
 	return(r)
 
 def pearson_corr_sparse(x_array, y_array):
@@ -261,23 +265,23 @@ def cal_corr_within_seg_nucleus(count_df_sub, seg_res, genes_list, count_name = 
 	                               cells = seg_count_cells_2, 
 	                               cells_sub = cells_overlap, 
 	                               genes_sub = genes_overlap)
-	corr_random = pearson_corr(seg_count_mat_1_overlap.toarray(), seg_count_mat_2_overlap.toarray()).diagonal()
+	corr_random = pearson_corr(seg_count_mat_1_overlap, seg_count_mat_2_overlap).A.diagonal()
 	return((corr_random, seg_count_cell_2_overlap))
 
-def cal_corr_between_seg(count_df_sub, seg_res_1, seg_res_2, genes_list = None):
+def cal_corr_between_seg(count_df_sub, seg_res_1, seg_res_2, count_name = 'MIDCount', genes_list = None):
 	count_df_sub_overlap = count_df_sub.loc[count_df_sub[seg_res_1] == count_df_sub[seg_res_2], :]
 	count_df_sub_nonoverlap = count_df_sub.loc[count_df_sub[seg_res_1] != count_df_sub[seg_res_2], :]
 	# overlap
 	count_df_sub_overlap = count_df_sub_overlap[count_df_sub_overlap[seg_res_1].notna()]
-	gene_seg_cell_overlap = count_df_sub_overlap['MIDCount'].groupby([count_df_sub_overlap[seg_res_1], count_df_sub_overlap['geneID']]).sum()
+	gene_seg_cell_overlap = count_df_sub_overlap[count_name].groupby([count_df_sub_overlap[seg_res_1], count_df_sub_overlap['geneID']]).sum()
 	seg_count_mat_overlap, seg_count_genes_overlap, seg_count_cells_overlap = longdf_to_mat(gene_seg_cell_overlap)
 	# segmentation 1
 	count_df_sub_nonoverlap_1 = count_df_sub_nonoverlap[count_df_sub_nonoverlap[seg_res_1].notna()]
-	gene_seg_cell_1 = count_df_sub_nonoverlap_1['MIDCount'].groupby([count_df_sub_nonoverlap_1[seg_res_1], count_df_sub_nonoverlap_1['geneID']]).sum()
+	gene_seg_cell_1 = count_df_sub_nonoverlap_1[count_name].groupby([count_df_sub_nonoverlap_1[seg_res_1], count_df_sub_nonoverlap_1['geneID']]).sum()
 	seg_count_mat_1, seg_count_genes_1, seg_count_cells_1 = longdf_to_mat(gene_seg_cell_1)
 	# segmentation 2
 	count_df_sub_nonoverlap_2 = count_df_sub_nonoverlap[count_df_sub_nonoverlap[seg_res_2].notna()]
-	gene_seg_cell_2 = count_df_sub_nonoverlap_2['MIDCount'].groupby([count_df_sub_nonoverlap_2[seg_res_2], count_df_sub_nonoverlap_2['geneID']]).sum()
+	gene_seg_cell_2 = count_df_sub_nonoverlap_2[count_name].groupby([count_df_sub_nonoverlap_2[seg_res_2], count_df_sub_nonoverlap_2['geneID']]).sum()
 	seg_count_mat_2, seg_count_genes_2, seg_count_cells_2 = longdf_to_mat(gene_seg_cell_2)
 	# determine cells and genes to use
 	cells_overlap = sorted(np.intersect1d(np.intersect1d(seg_count_cells_overlap, seg_count_cells_1), seg_count_cells_2).tolist())
@@ -304,8 +308,8 @@ def cal_corr_between_seg(count_df_sub, seg_res_1, seg_res_2, genes_list = None):
 											  cells = seg_count_cells_2, 
 											  cells_sub = cells_overlap, 
 											  genes_sub = genes_use)
-	corr_1 = pearson_corr(seg_count_mat_overlap_use.toarray(), seg_count_mat_1_use.toarray()).diagonal()
-	corr_2 = pearson_corr(seg_count_mat_overlap_use.toarray(), seg_count_mat_2_use.toarray()).diagonal()
+	corr_1 = pearson_corr(seg_count_mat_overlap_use, seg_count_mat_1_use).A.diagonal()
+	corr_2 = pearson_corr(seg_count_mat_overlap_use, seg_count_mat_2_use).A.diagonal()
 	return((corr_1, corr_2, seg_count_cells_2_use))
 
 def KL_divergence(X, Y):
@@ -347,3 +351,115 @@ def get_cell_mat(count_df_seg, seg_res, count_name = "MIDCount"):
 	gene_cell = count_df_seg[count_name].groupby([count_df_seg[seg_res], count_df_seg['geneID']]).sum()
 	expr_mat, gene_list, cell_list = longdf_to_mat(gene_cell)
 	return(expr_mat, gene_list, cell_list)
+
+def split_cell_with_line(coord_df_sub_cell, seg_res):
+    """
+    Splits a cell by a randomly oriented line and assigns labels based on projections.
+    
+    Parameters:
+    - coord_df_sub_cell (pd.DataFrame): Subset DataFrame containing coordinates of a single cell.
+    - seg_res (str): Column name representing the segmentation result.
+    
+    Returns:
+    - pd.DataFrame: Modified DataFrame with a new 'Random_{seg_res}' column.
+    """
+    # Calculate the center point
+    cx, cy = coord_df_sub_cell[['x', 'y']].mean()
+    
+    # Generate a random angle for the line
+    line_angle = np.random.uniform(0, np.pi)
+    line_normal = np.array([np.cos(line_angle), np.sin(line_angle)])
+    
+    # Calculate projections of points onto the line
+    points_centered = coord_df_sub_cell[['x', 'y']].to_numpy() - np.array([cx, cy])
+    projections = points_centered @ line_normal  # Using matrix multiplication for efficiency
+    
+    # Assign labels based on projection values
+    coord_df_sub_cell = coord_df_sub_cell.copy()
+    coord_df_sub_cell[f'Random_{seg_res}'] = np.where(projections >= 0, 2, 1)
+    
+    return coord_df_sub_cell
+
+def split_cells_with_line(coord_df, seg_res, num_workers=16):
+    """
+    Splits multiple cells by randomly oriented lines in parallel.
+    
+    Parameters:
+    - coord_df (pd.DataFrame): Main DataFrame containing all cell coordinates.
+    - seg_res (str): Column name representing the segmentation result.
+    - num_workers (int): Number of parallel processes to use.
+    
+    Returns:
+    - pd.DataFrame: Concatenated DataFrame with new 'Random_{seg_res}' columns.
+    """
+    # Get a list of unique cell IDs
+    cell_list = coord_df[seg_res].unique()
+    
+    # Use map instead of submit and wait for better efficiency and simplified code
+    with concurrent.futures.ProcessPoolExecutor(max_workers=num_workers) as executor:
+        # Use a lambda to pass each cell_id and process it in parallel
+        # This approach reduces data transmission by processing subsets efficiently
+        results = list(executor.map(
+            lambda cell_id: split_cell_with_line(
+                coord_df.loc[coord_df[seg_res] == cell_id].copy(),
+                seg_res
+            ),
+            cell_list
+        ))
+    
+    # Concatenate all resulting DataFrames into one
+    coord_df_merge = pd.concat(results, axis=0, ignore_index=True)
+    return coord_df_merge
+
+def split_cell_with_line(coord_df_sub_cell, seg_res):
+	print(coord_df_sub_cell[seg_res].unique())
+	cx, cy = coord_df_sub_cell.loc[:,['x', 'y']].mean()
+	# generate the angle of the line randomly
+	line_angle = np.random.uniform(0, np.pi)
+	line_normal = np.array([np.cos(line_angle), np.sin(line_angle)])
+	# calculate the the projection from point to line
+	points_centered = coord_df_sub_cell.loc[:,['x', 'y']] - np.array([cx, cy])
+	projections = np.dot(points_centered, line_normal)
+	coord_df_sub_cell['Random_%s' %seg_res] = 1
+	coord_df_sub_cell.loc[projections >= 0, 'Random_%s' %seg_res] = 2
+	return coord_df_sub_cell
+
+def split_cells_with_line(coord_df, seg_res):
+	cell_list = coord_df[seg_res].unique()
+	res_list = []
+	with concurrent.futures.ProcessPoolExecutor(max_workers = 16) as executor:
+		for cell_id in cell_list:
+			coord_df_sub_cell = coord_df.loc[coord_df[seg_res] == cell_id, ]
+			arg_tuple = (coord_df_sub_cell, seg_res)
+			res_list.append(executor.submit(split_cell_with_line, *arg_tuple))
+	done, not_done = concurrent.futures.wait(res_list, timeout=None)
+	coord_df_list = [future.result() for future in done]
+	coord_df_merge = pd.concat(coord_df_list, axis = 0, ignore_index = True)
+	return(coord_df_merge)
+
+def cal_corr_within_seg_line(count_df_sub, seg_res, count_name = 'MIDCount', genes_list = None):
+	count_df_sub_in_1 = count_df_sub[count_df_sub['Random_%s' %seg_res] == 1]
+	count_df_sub_in_2 = count_df_sub[count_df_sub['Random_%s' %seg_res] == 2]
+	gene_seg_cell_1 = count_df_sub_in_1[count_name].groupby([count_df_sub_in_1[seg_res], count_df_sub_in_1['geneID']]).sum()
+	seg_count_mat_1, seg_count_genes_1, seg_count_cells_1 = longdf_to_mat(gene_seg_cell_1)
+	gene_seg_cell_2 = count_df_sub_in_2[count_name].groupby([count_df_sub_in_2[seg_res], count_df_sub_in_2['geneID']]).sum()
+	seg_count_mat_2, seg_count_genes_2, seg_count_cells_2 = longdf_to_mat(gene_seg_cell_2)
+	if genes_list:
+		genes_overlap = list((set(genes_list) & set(seg_count_genes_1)) & set(seg_count_genes_2))
+	else:
+		genes_overlap = list(set(seg_count_genes_1) & set(seg_count_genes_2))
+	cells_overlap = list(set(seg_count_cells_1) & set(seg_count_cells_2))
+	seg_count_mat_1_overlap, seg_count_gene_1_overlap, seg_count_cell_1_overlap = sub_mat(mat = seg_count_mat_1, 
+								   genes = seg_count_genes_1, 
+								   cells = seg_count_cells_1, 
+								   cells_sub = cells_overlap, 
+								   genes_sub = genes_overlap)
+	seg_count_mat_2_overlap, seg_count_gene_2_overlap, seg_count_cell_2_overlap = sub_mat(mat = seg_count_mat_2, 
+								   genes = seg_count_genes_2, 
+								   cells = seg_count_cells_2, 
+								   cells_sub = cells_overlap, 
+								   genes_sub = genes_overlap)
+	corr_random = pearson_corr(seg_count_mat_1_overlap, seg_count_mat_2_overlap).A.diagonal()
+	return(corr_random, seg_count_cell_1_overlap)
+
+

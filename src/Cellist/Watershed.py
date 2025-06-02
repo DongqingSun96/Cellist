@@ -2,7 +2,7 @@
 # @Author: dongqing
 # @Date:   2024-01-05 20:29:00
 # @Last Modified by:   dongqing
-# @Last Modified time: 2024-04-17 12:28:57
+# @Last Modified time: 2025-03-24 22:05:34
 
 
 import sys, os, gc
@@ -61,6 +61,11 @@ def WatershedParser(subparsers):
     group_input.add_argument("--no-local-threshold", dest = "no_local_threshold", action = "store_true", 
         help = "Whether or not to perform local thresholding on the image. "
         "If not set, Cellist will perform local thresholding. If set, the local thresholding will be skipped. ")
+    group_input.add_argument("--expansion", dest = "expansion", action = "store_true", 
+        help = "Whether or not to perform expansion after watershed segmentation. "
+        "If set, expansion based on watershed segmentation will be performed. ")
+    group_input.add_argument("--expansion-dist", dest = "expansion_dist", type = int, default = 8,
+        help = "The expansion distance (in pixel). Default: 8. ")
 
     group_output = parser.add_argument_group("Output arguments")
     group_output.add_argument("--outdir", dest = "out_dir", default = '.',
@@ -68,7 +73,6 @@ def WatershedParser(subparsers):
     group_output.add_argument("--outprefix", dest = "out_prefix", default = None,
         help = "The output prefix. ")
     return(parser)
-
 
 def Thresholding(platform, img_path, out_dir, out_img_prefix, no_local_threshold = False):
     img = imread(img_path)
@@ -143,103 +147,69 @@ def watershed_seg(img, otsu_local_hole_rm, out_dir, out_img_prefix, min_distance
                               properties=['label', 'area','centroid',
                                           'equivalent_diameter_area'])
     props_df = pd.DataFrame(props)
-    props_df.to_csv(os.path.join(out_dir, "%s_watershed_nucleus_property.txt" %out_img_prefix), sep = "\t", index = False)
+    props_df.to_csv(os.path.join(out_dir, "%s_Watershed_nucleus_property.txt" %out_img_prefix), sep = "\t", index = False)
     if expansion:
         expanded = expand_labels(segmented_cells, distance = expansion_dist)
-        watershed_seg_file = os.path.join(out_dir, "%s_watershed_cells_expansion%s_matrix.npz" %(out_img_prefix, expansion_dist))
+        watershed_seg_file = os.path.join(out_dir, "%s_Watershed_expansion_%s_cells_matrix.npz" %(out_img_prefix, expansion_dist))
         expanded_mat = csc_matrix(expanded, dtype=np.int32)
         save_npz(watershed_seg_file, expanded_mat)
         props_expanded = regionprops_table(expanded, 
                                   properties=['label', 'area','centroid',
                                               'equivalent_diameter_area'])
         props_df_expanded = pd.DataFrame(props_expanded)
-        props_df_expanded.to_csv(os.path.join(out_dir, "%s_watershed_cells_expansion%s_property.txt" %(out_img_prefix, expansion_dist)), sep = "\t", index = False)
+        props_df_expanded.to_csv(os.path.join(out_dir, "%s_Watershed_expansion_%s_cells_property.txt" %(out_img_prefix, expansion_dist)), sep = "\t", index = False)
         return segmented_cells, expanded
     else:
         return segmented_cells
 
-def write_segmentation_coord(segmented_cells, coord_df, out_dir, out_gem_prefix, expanded = None, seg_method = "nucleus", expansion_dist = 8):
+def write_segmentation_coord(segmented_cells, coord_df, out_dir, out_gem_prefix, seg_method = "Watershed", expansion = False, expanded = None, expansion_dist = 8):
     logging.info("Writing segmentation results... ")
-    segmented_nucleus_df = pd.DataFrame(segmented_cells)
-    segmented_nucleus_df["x"] = segmented_nucleus_df.index
-    segmented_nucleus_long_df = pd.melt(segmented_nucleus_df, id_vars = "x", 
-                                         value_vars = segmented_nucleus_df.columns[0:-1],
-                                         var_name = "y",
-                                         value_name = "Watershed")
-    del segmented_nucleus_df
-    gc.collect()
-    segmented_nucleus_long_df["Nucleus"] = 0
-    segmented_nucleus_long_df.loc[segmented_nucleus_long_df["Watershed"] > 0, "Nucleus"] = 1
-    xmin,xmax = coord_df['x'].min(), coord_df['x'].max()
-    ymin,ymax = coord_df['y'].min(), coord_df['y'].max()
-    segmented_nucleus_long_df = segmented_nucleus_long_df.loc[(segmented_nucleus_long_df['x'] >= xmin) & 
-                                                          (segmented_nucleus_long_df['x'] <= xmax) &
-                                                          (segmented_nucleus_long_df['y'] >= ymin) &
-                                                          (segmented_nucleus_long_df['y'] <= ymax),:]
-
-    x_list = segmented_nucleus_long_df.loc[:,'x'].tolist()
-    y_list = segmented_nucleus_long_df.loc[:,'y'].tolist()
-    x_y = [f"{a}_{b}" for a, b in zip(x_list, y_list)]
-    segmented_nucleus_long_df['x_y'] = x_y
-    # segmented_nucleus_long_df['x_y'] = segmented_nucleus_long_df['x'].astype(str) + '_' + segmented_nucleus_long_df['y'].astype(str)
-    coord_slice_list = slice_coord(coord_df, 5000, 0)
-    segmented_nucleus_long_df_barcode_sub_list = []
-    for coord_tuple in coord_slice_list:
-        xmin_slice, xmax_slice, ymin_slice, ymax_slice = coord_tuple
-        coord_df_sub = coord_df.loc[(coord_df['x'] >= xmin_slice) & 
-                      (coord_df['x'] < xmax_slice) &
-                      (coord_df['y'] >= ymin_slice) &
-                      (coord_df['y'] < ymax_slice),:]
-        segmented_nucleus_long_df_sub = segmented_nucleus_long_df.loc[(segmented_nucleus_long_df['x'] >= xmin_slice) & 
-                      (segmented_nucleus_long_df['x'] < xmax_slice) &
-                      (segmented_nucleus_long_df['y'] >= ymin_slice) &
-                      (segmented_nucleus_long_df['y'] < ymax_slice),:]
-        segmented_nucleus_long_df_barcode_sub = pd.merge(coord_df_sub, segmented_nucleus_long_df_sub[['x_y','Nucleus','Watershed']], how = 'left', on = 'x_y')
-        segmented_nucleus_long_df_barcode_sub_list.append(segmented_nucleus_long_df_barcode_sub)
-    segmented_nucleus_long_df_barcode = pd.concat(segmented_nucleus_long_df_barcode_sub_list)
-    # segmented_nucleus_long_df_barcode = pd.merge(coord_df, segmented_nucleus_long_df[['x_y','Nucleus','Watershed']], how = 'left', on = 'x_y')
-    segmented_nucleus_long_df_barcode = segmented_nucleus_long_df_barcode.sort_values(['x', 'y'])
-    nucl_coord_out_file = os.path.join(out_dir, "%s_watershed_nucleus_coord.txt" %(out_gem_prefix))
-    segmented_nucleus_long_df_barcode.to_csv(nucl_coord_out_file, sep = "\t", index = False)
+    nucleus_loc = np.where(segmented_cells != 0)
+    nucleus_coord_df = pd.DataFrame({'x': nucleus_loc[0],'y': nucleus_loc[1], 'Nucleus':1, seg_method: segmented_cells[nucleus_loc]})
+    nucleus_barcode_df = pd.merge(coord_df, nucleus_coord_df, how = "left", on = ['x', 'y'])
+    nucleus_barcode_df['Nucleus'] = nucleus_barcode_df['Nucleus'].fillna(0)
+    nucleus_barcode_df['Nucleus'] = nucleus_barcode_df['Nucleus'].astype(int)
+    nucleus_barcode_df = nucleus_barcode_df.sort_values(['x', 'y'])
+    nucl_coord_out_file = os.path.join(out_dir, "%s_%s_nucleus_coord.txt" %(out_gem_prefix, seg_method))
+    nucleus_barcode_df.to_csv(nucl_coord_out_file, sep = "\t", index = False)
+    nucleus_barcode_df = nucleus_barcode_df.loc[nucleus_barcode_df[seg_method] != 0, :]
+    nucleus_coord_nspot = write_segmentation_cell_coord(coord_df_seg = nucleus_barcode_df, seg_res = seg_method, 
+        out_prefix = "%s_%s" %(out_gem_prefix, seg_method), out_dir = out_dir)
+    nucleus_label_nspot_over20 = nucleus_coord_nspot.loc[nucleus_coord_nspot['nSpot'] >= 20,:].index.tolist()
     logging.info("Writing segmentation results is done.")
-    if expanded:
-        segmented_cells_df = pd.DataFrame(expanded)
-        segmented_cells_df["x"] = segmented_cells_df.index
-        segmented_cells_long_df = pd.melt(segmented_cells_df, id_vars = "x", 
-                                         value_vars = segmented_cells_df.columns[0:-1],
-                                         var_name = "y",
-                                         value_name = "Expansion")
-        segmented_cells_long_df["Nucleus"] = 0
-        segmented_cells_long_df.loc[segmented_nucleus_long_df["Watershed"] > 0, "Nucleus"] = 1
-        segmented_cells_long_df['x_y'] = segmented_cells_long_df['x'].astype(str) + '_' + segmented_cells_long_df['y'].astype(str)
-        segmented_cells_long_df_barcode = pd.merge(coord_df, segmented_cells_long_df[['x_y','Nucleus','Expansion',]], how = 'left', on = 'x_y')
-        segmented_cells_long_df_barcode = segmented_cells_long_df_barcode.sort_values(['x', 'y'])
-        segmented_cells_long_df_barcode.loc[segmented_cells_long_df_barcode['Expansion'] == 0, 'Expansion'] = np.nan
-        cell_coord_out_file = os.path.join(out_dir, "%s_watershed_cells_expansion%s_coord.txt" %(out_gem_prefix, expansion_dist))
-        segmented_cells_long_df_barcode.to_csv(cell_coord_out_file, sep = "\t", index = False)
-        return segmented_nucleus_long_df_barcode, segmented_cells_long_df_barcode
+    if expansion:
+        expanded_loc = np.where(expanded != 0)
+        exp_seg_method = '%s_expansion_%s' %(seg_method, expansion_dist)
+        expanded_coord_df = pd.DataFrame({'x': expanded_loc[0],'y': expanded_loc[1], exp_seg_method: expanded[expanded_loc]})
+        expanded_barcode_df = pd.merge(nucleus_barcode_df[['x', 'y', 'x_y', 'Nucleus']], expanded_coord_df, how = "left", on = ['x', 'y'])
+        expanded_barcode_df = expanded_barcode_df.sort_values(['x', 'y'])
+        expanded_barcode_df = expanded_barcode_df.loc[expanded_barcode_df[exp_seg_method].isin(nucleus_label_nspot_over20),:]
+        cell_coord_out_file = os.path.join(out_dir, "%s_%s_expansion_%s_cells_coord.txt" %(out_gem_prefix, seg_method, expansion_dist))
+        expanded_barcode_df.to_csv(cell_coord_out_file, sep = "\t", index = False)
+        expanded_barcode_df = expanded_barcode_df.loc[expanded_barcode_df[exp_seg_method] != 0, :]
+        expanded_coord_nspot = write_segmentation_cell_coord(coord_df_seg = expanded_barcode_df, seg_res = exp_seg_method, 
+            out_prefix = "%s_%s" %(out_gem_prefix, exp_seg_method), out_dir = out_dir)
+        return nucleus_barcode_df, expanded_barcode_df
     else:
-        return segmented_nucleus_long_df_barcode
+        return nucleus_barcode_df
 
-def write_segmentation_cell(segmented_nucleus_long_df_barcode, count_df, out_gem_prefix, out_dir, segmented_cells_long_df_barcode = None):
+def write_segmentation_cell(nucleus_barcode_df, count_df, out_gem_prefix, out_dir, seg_method = "Watershed", expansion = False, expanded_barcode_df = None, expansion_dist = 8):
     logging.info("Writing cell-level expression matrix... ")
-    count_df_watershed = pd.merge(count_df, segmented_nucleus_long_df_barcode[['x_y', 'Watershed']], how = "right", on = 'x_y')
-    count_name = count_df_watershed.columns[3]
-    count_df_watershed = count_df_watershed.loc[count_df_watershed['Watershed'] != 0, :]
-    write_segmentation_h5(count_df_seg = count_df_watershed, seg_res = "Watershed", out_prefix = "%s_waterhsed" %out_gem_prefix, 
+    count_df_segmentation = pd.merge(count_df, nucleus_barcode_df[['x_y', seg_method]], how = "right", on = 'x_y')
+    count_name = count_df_segmentation.columns[3]
+    count_df_segmentation = count_df_segmentation.loc[count_df_segmentation[seg_method] != 0, :]
+    write_segmentation_h5(count_df_seg = count_df_segmentation, seg_res = seg_method, out_prefix = "%s_%s" %(out_gem_prefix, seg_method), 
         out_dir = out_dir, count_name = count_name)
-    write_segmentation_cell_coord(coord_df_seg = segmented_nucleus_long_df_barcode, seg_res = 'Watershed', 
-        out_prefix = "%s_waterhsed" %out_gem_prefix, out_dir = out_dir)
-    if segmented_cells_long_df_barcode:
-        count_df_expansion = pd.merge(count_df, segmented_cells_long_df_barcode[['x_y', 'Expansion']], how = "right", on = 'x_y')
+    if expansion:
+        exp_seg_method = '%s_expansion_%s' %(seg_method, expansion_dist)
+        count_df_expansion = pd.merge(count_df, expanded_barcode_df[['x_y', exp_seg_method]], how = "right", on = 'x_y')
         count_name = count_df_expansion.columns[3]
-        write_segmentation_h5(count_df_seg = count_df_watershed, seg_res = "Expansion", out_prefix = "%s_expansion" %out_gem_prefix, 
+        count_df_expansion = count_df_expansion.loc[count_df_expansion[exp_seg_method] != 0, :]
+        write_segmentation_h5(count_df_seg = count_df_expansion, seg_res = exp_seg_method, out_prefix = "%s_%s" %(out_gem_prefix, exp_seg_method), 
             out_dir = out_dir, count_name = count_name)
-        write_segmentation_cell_coord(coord_df_seg = segmented_cells_long_df_barcode, seg_res = 'Expansion', 
-            out_prefix = "%s_expansion" %out_gem_prefix, out_dir = out_dir)
     logging.info("Writing cell-level expression matrix is done.")
 
-def Watershed(platform, gem_path, img_path, out_dir, out_prefix, min_distance, no_local_threshold):
+def Watershed(platform, gem_path, img_path, out_dir, out_prefix, min_distance, no_local_threshold, expansion, expansion_dist):
     if not out_prefix:
         file_name, file_extension = os.path.splitext(gem_path)
         base_name = os.path.basename(file_name)
@@ -260,7 +230,10 @@ def Watershed(platform, gem_path, img_path, out_dir, out_prefix, min_distance, n
     else:
         img, otsu_local_hole_rm = Thresholding(platform, img_path, out_dir, out_img_prefix, no_local_threshold)
     # --------------------- watershed segmentation --------------------- 
-    segmented_cells = watershed_seg(img, otsu_local_hole_rm, out_dir, out_img_prefix, min_distance = min_distance, expansion = False, expansion_dist = 8)
+    if expansion:
+        segmented_cells, expanded = watershed_seg(img, otsu_local_hole_rm, out_dir, out_img_prefix, min_distance = min_distance, expansion = expansion, expansion_dist = expansion_dist)
+    else:
+        segmented_cells = watershed_seg(img, otsu_local_hole_rm, out_dir, out_img_prefix, min_distance = min_distance, expansion = expansion, expansion_dist = expansion_dist)
     # --------------------- read gem file --------------------- 
     logging.info("Reading count file...")
     gem_df = pd.read_csv(gem_path, sep = "\t", comment = "#")
@@ -269,12 +242,19 @@ def Watershed(platform, gem_path, img_path, out_dir, out_prefix, min_distance, n
     gem_df = gem_to_mat(gem_df = gem_df, outfile = bin1_out_file, countname = countname)
     coord_df = gem_df.drop_duplicates(subset = ['x_y'])
     coord_df = coord_df[["x", "y", "x_y"]]
-    # --------------------- write segmentation result --------------------- 
-    segmented_nucleus_long_df_barcode = write_segmentation_coord(segmented_cells, coord_df, out_dir, out_gem_prefix)
-    write_segmentation_cell(segmented_nucleus_long_df_barcode, gem_df, out_gem_prefix, out_dir)
+    # --------------------- write segmentation result ---------------------
+    if expansion:
+        nucleus_barcode_df, expanded_barcode_df = write_segmentation_coord(segmented_cells, coord_df, out_dir, out_gem_prefix, seg_method = "Watershed", expansion = expansion, expanded = expanded, expansion_dist = expansion_dist)
+    else:
+        nucleus_barcode_df = write_segmentation_coord(segmented_cells, coord_df, out_dir, out_gem_prefix, seg_method = "Watershed")
+        expanded_barcode_df = None
+    write_segmentation_cell(nucleus_barcode_df, gem_df, out_gem_prefix, out_dir, seg_method = "Watershed", expansion = expansion, expanded_barcode_df = expanded_barcode_df, expansion_dist = expansion_dist)
     logging.info("Drawing segmentation plot...")
-    draw_segmentation(segmented_nucleus_long_df_barcode, seg_res = "Watershed", out_prefix = "%s_watershed" %out_gem_prefix,
+    draw_segmentation(nucleus_barcode_df, seg_res = "Watershed", out_prefix = "%s_watershed" %out_gem_prefix,
         out_dir = out_dir, x = "x", y = "y", figsize = (80, 80))
+    if expansion:
+        draw_segmentation(expanded_barcode_df, seg_res = 'Watershed_expansion_%s' %(expansion_dist), out_prefix = "%s_Watershed_expansion_%s" %(out_gem_prefix, expansion_dist),
+            out_dir = out_dir, x = "x", y = "y", figsize = (80, 80))
     logging.info("Drawing segmentation plot is done.")
     logging.info("All done!")
 
@@ -287,4 +267,6 @@ if __name__ == '__main__':
     out_prefix = parser.out_prefix
     min_distance = parser.min_distance
     no_local_threshold = parser.no_local_threshold
-    Watershed(platform = platform, gem_path = gem_path, img_path = img_path, out_dir = out_dir, out_prefix = out_prefix, min_distance = min_distance, no_local_threshold = no_local_threshold)
+    expansion = parser.expansion
+    expansion_dist = parser.expansion_dist
+    Watershed(platform = platform, gem_path = gem_path, img_path = img_path, out_dir = out_dir, out_prefix = out_prefix, min_distance = min_distance, no_local_threshold = no_local_threshold, expansion = expansion, expansion_dist = expansion_dist)

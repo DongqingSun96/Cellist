@@ -2,7 +2,7 @@
 # @Author: dongqing
 # @Date:   2023-10-14 12:05:31
 # @Last Modified by:   dongqing
-# @Last Modified time: 2024-04-15 19:21:03
+# @Last Modified time: 2025-03-24 20:55:29
 
 import os
 import h5py
@@ -82,6 +82,7 @@ def write_segmentation_cell_coord(coord_df_seg, seg_res, out_prefix, out_dir):
     cell_coord_nspot = pd.merge(cell_coord, cell_nspot, on = seg_res)
     cell_coord_file = os.path.join(out_dir, "%s_segmentation_cell_coord.txt" %out_prefix)
     cell_coord_nspot.to_csv(cell_coord_file, sep = "\t")
+    return(cell_coord_nspot)
 
 def gem_to_mat(gem_df, outfile, countname = 'MIDCount'):
     gem_df['x_y'] = gem_df['x'].astype(str) + '_' + gem_df['y'].astype(str)

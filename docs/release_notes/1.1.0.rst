@@ -1,0 +1,7 @@
+1.1.0 `2024-06-01`
+~~~~~~~~~~~~~~~~~~~
+
+.. rubric:: Feature
+
+- Update Cellist model
+- Support Cellpose for image-based segmentation

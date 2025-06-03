@@ -31,7 +31,7 @@ dependencies = [
     "scanpy >= 1.9.4",
     "h5py >= 3.8.0",
     "tables >= 3.7.0",
-    "spateo-release == 1.0.2",
+    "spateo-release == 1.1.0",
     "pyvista == 0.42",
     "leidenalg == 0.10.2",
     "cellpose==3.1.1.1",

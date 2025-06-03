@@ -2,7 +2,7 @@
 # @Author: dongqing
 # @Date:   2023-10-14 12:54:35
 # @Last Modified by:   Dongqing
-# @Last Modified time: 2025-06-02 16:56:05
+# @Last Modified time: 2025-06-03 08:21:08
 
 
 import sys,os
@@ -14,7 +14,8 @@ except ImportError:
 
 exec(open('src/Cellist/version.py').read())
 
-with open("requirements.txt") as f:
+cur_directory = os.path.abspath(os.path.dirname(__file__))
+with open(os.path.join(cur_directory, "requirements.txt"), encoding="utf-8") as f:
     requirements = f.read().splitlines()
 
 def main():

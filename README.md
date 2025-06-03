@@ -17,7 +17,7 @@ Cellist is a computational method to perform cell segmentation on high-resolutio
 * Release Cellist.
 ### v1.1.0
 * Update Cellist model.
-* Support Cellist for image-based segmentation.
+* Support Cellpose for image-based segmentation.
 
 
 ## Install Cellist

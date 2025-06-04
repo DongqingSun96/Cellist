@@ -182,7 +182,7 @@
 <p>Here we use a mouse olfactory bulb dataset profiled by Stereo-seq (<a class="reference external" href="https://www.sciencedirect.com/science/article/pii/S0092867422003993">Chen et al., Cell, 2022</a>) to demonstrate the usage of Cellist. The original study provides spatial expression and a corresponding ssDNA staining image. Users can download the processed data from <a class="reference external" href="https://github.com/wanglabtongji/Cellist/tree/main/test/Stereoseq_Mouse_OB">here</a>.</p>
 <section id="step-1-registration-between-staining-and-spatial-expression-profile">
 <h2>Step 1 Registration between staining and spatial expression profile<a class="headerlink" href="#step-1-registration-between-staining-and-spatial-expression-profile" title="Permalink to this heading">¶</a></h2>
-<p>While the images are initially aligned with RNA coordinates, minor misalignments may still occur. The <code class="code highlight bash docutils literal highlight-bash">align</code> function could be used to refine the alignment, which integrates the <code class="code highlight bash docutils literal highlight-bash">refine_alignment</code> function with the rigid mode in <a class="reference external" href="https://spateo-release.readthedocs.io/en/latest/technicals/cell_segmentation.html#alignment-of-stain-and-rna-coordinates">Spateo</a>.</p>
+<p>While the images are initially aligned with RNA coordinates, minor misalignments may still occur. The <code class="code highlight bash docutils literal highlight-bash">align</code> function could be used to refine the alignment, which integrates the <code class="code highlight bash docutils literal highlight-bash">refine_alignment</code> function with the rigid mode in <a class="reference external" href="https://spateo-release.readthedocs.io/en/latest/technicals/cell_segmentation.html#alignment-of-stain-and-rna-coordinates">Spateo</a>. This step typically takes ~ 2 minutes.</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>cellist<span class="w"> </span>align<span class="w"> </span>--gem<span class="w"> </span>Data/DP8400013846TR_F5.bin1.olfactorybulb_cropped.gem<span class="w"> </span><span class="se">\</span>
 --tif<span class="w"> </span>Data/ssDNA_cropped_3625_9545_950_5630.tiff<span class="w"> </span><span class="se">\</span>
 --nworkers<span class="w"> </span><span class="m">8</span><span class="w"> </span><span class="se">\</span>
@@ -192,9 +192,9 @@
 </div>
 <a class="reference internal image-reference" href="../_images/DP8400013846TR_F5_alignment_compare.png"><img alt="../_images/DP8400013846TR_F5_alignment_compare.png" class="align-center" src="../_images/DP8400013846TR_F5_alignment_compare.png" style="width: 100%;" /></a>
 </section>
-<section id="step-2-watershed-segmentation-of-nucleus">
-<h2>Step 2 Watershed segmentation of nucleus<a class="headerlink" href="#step-2-watershed-segmentation-of-nucleus" title="Permalink to this heading">¶</a></h2>
-<p>The initial nucleus segmentation is required for refined cell segmentation by Cellist. In Cellist, we utilize the watershed algorithm to segment nuclei in the ssDNA image, which is implemented by the function of <code class="code highlight bash docutils literal highlight-bash">watershed</code>.</p>
+<section id="step-2-nucleus-segmentation-via-watershed">
+<h2>Step 2 Nucleus segmentation via Watershed<a class="headerlink" href="#step-2-nucleus-segmentation-via-watershed" title="Permalink to this heading">¶</a></h2>
+<p>The initial nucleus segmentation is required for refined cell segmentation by Cellist. In Cellist, we utilize the watershed algorithm to segment nuclei in the ssDNA image, which is implemented by the function of <code class="code highlight bash docutils literal highlight-bash">watershed</code>. This step typically takes ~ 4 minutes.</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>cellist<span class="w"> </span>watershed<span class="w"> </span>--gem<span class="w"> </span>Data/DP8400013846TR_F5.bin1.olfactorybulb_cropped.gem<span class="w"> </span><span class="se">\</span>
 --tif<span class="w"> </span>Result/Alignment/DP8400013846TR_F5_regist_transposed_aligned_by_Spateo.tiff<span class="w"> </span><span class="se">\</span>
 --min-distance<span class="w"> </span><span class="m">6</span><span class="w"> </span><span class="se">\</span>
@@ -204,21 +204,51 @@
 </div>
 <a class="reference internal image-reference" href="../_images/DP8400013846TR_F5_cell_boundary.png"><img alt="../_images/DP8400013846TR_F5_cell_boundary.png" class="align-center" src="../_images/DP8400013846TR_F5_cell_boundary.png" style="width: 100%;" /></a>
 </section>
+<section id="step-2-optional-nucleus-segmentation-via-cellpose">
+<h2>Step 2 (Optional) Nucleus segmentation via Cellpose<a class="headerlink" href="#step-2-optional-nucleus-segmentation-via-cellpose" title="Permalink to this heading">¶</a></h2>
+<p>As an alternative to watershed—especially for dense tissues—users may choose to use <code class="code highlight bash docutils literal highlight-bash">cellpose</code>, which leverages a deep learning model for nucleus segmentation. This step takes ~ 5 minutes using an NVIDIA GeForce RTX 3090.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>cellist<span class="w"> </span>cellpose<span class="w"> </span>--gem<span class="w"> </span>Data/DP8400013846TR_F5.bin1.olfactorybulb_cropped.gem<span class="w"> </span><span class="se">\</span>
+--tif<span class="w"> </span>Result/Alignment/DP8400013846TR_F5_regist_transposed_aligned_by_Spateo.tiff<span class="w"> </span><span class="se">\</span>
+--diameter<span class="w"> </span><span class="m">10</span><span class="w"> </span><span class="se">\</span>
+--expansion<span class="w"> </span><span class="se">\</span>
+--expansion-dist<span class="w"> </span><span class="m">9</span><span class="w"> </span><span class="se">\</span>
+--outdir<span class="w"> </span>Result/Cellpose<span class="w"> </span><span class="se">\</span>
+--outprefix<span class="w"> </span>DP8400013846TR_F5
+</pre></div>
+</div>
+<a class="reference internal image-reference" href="../_images/DP8400013846TR_F5_cell_boundary.png"><img alt="../_images/DP8400013846TR_F5_cell_boundary.png" class="align-center" src="../_images/DP8400013846TR_F5_cell_boundary.png" style="width: 100%;" /></a>
+</section>
 <section id="step-3-cell-segmentation-by-cellist">
 <h2>Step 3 Cell segmentation by Cellist<a class="headerlink" href="#step-3-cell-segmentation-by-cellist" title="Permalink to this heading">¶</a></h2>
-<p>With nucleus segmentation completed, the next step is to expand the nucleus labels to include the cytoplasm, namely, cell segmentation. In cellist, we take both expression similarity and spatial proximity into consideration when assigning non-nucleus spots to labelled nuclei.</p>
+<p>With nucleus segmentation completed, the next step is to expand the nucleus labels to include the cytoplasm, namely, cell segmentation. In cellist, we take both expression similarity and spatial proximity into consideration when assigning non-nucleus spots to labelled nuclei. This step takes approximately ~ 10 minutes on a high-performance system.</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>cellist<span class="w"> </span>seg<span class="w"> </span>--platform<span class="w"> </span>barcoding<span class="w"> </span><span class="se">\</span>
 --resolution<span class="w"> </span><span class="m">0</span>.5<span class="w"> </span><span class="se">\</span>
 --gem<span class="w"> </span>Data/DP8400013846TR_F5.bin1.olfactorybulb_cropped.gem<span class="w"> </span><span class="se">\</span>
 --spot-count-h5<span class="w"> </span>Result/Watershed/DP8400013846TR_F5_bin1.h5<span class="w"> </span><span class="se">\</span>
 --nucleus-seg-method<span class="w"> </span>Watershed<span class="w"> </span><span class="se">\</span>
---nucleus-prop<span class="w"> </span>Result/Watershed/DP8400013846TR_F5_watershed_nucleus_property.txt<span class="w"> </span><span class="se">\</span>
---nucleus-count-h5<span class="w"> </span>Result/Watershed/DP8400013846TR_F5_waterhsed_segmentation_cell_count.h5<span class="w"> </span><span class="se">\</span>
---nucleus-seg<span class="w"> </span>Result/Watershed/DP8400013846TR_F5_watershed_nucleus_coord.txt<span class="w"> </span><span class="se">\</span>
+--nucleus-prop<span class="w"> </span>Result/Watershed/DP8400013846TR_F5_Watershed_nucleus_property.txt<span class="w"> </span><span class="se">\</span>
+--nucleus-count-h5<span class="w"> </span>Result/Watershed/DP8400013846TR_F5_Watershed_segmentation_cell_count.h5<span class="w"> </span><span class="se">\</span>
+--nucleus-seg<span class="w"> </span>Result/Watershed/DP8400013846TR_F5_Watershed_nucleus_coord.txt<span class="w"> </span><span class="se">\</span>
 --nworkers<span class="w"> </span><span class="m">16</span><span class="w"> </span><span class="se">\</span>
 --cell-radius<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="se">\</span>
 --spot-imputation-distance<span class="w"> </span><span class="m">2</span>.5<span class="w"> </span><span class="se">\</span>
 --outdir<span class="w"> </span>Result/Cellist<span class="w"> </span><span class="se">\</span>
+--outprefix<span class="w"> </span>DP8400013846TR_F5
+</pre></div>
+</div>
+<p>Alternatively, users can perform Cellist segmentation based on Cellpose nucleus segmentation.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>cellist<span class="w"> </span>seg<span class="w"> </span>--platform<span class="w"> </span>barcoding<span class="w"> </span><span class="se">\</span>
+--resolution<span class="w"> </span><span class="m">0</span>.5<span class="w"> </span><span class="se">\</span>
+--gem<span class="w"> </span>Data/DP8400013846TR_F5.bin1.olfactorybulb_cropped.gem<span class="w"> </span><span class="se">\</span>
+--spot-count-h5<span class="w"> </span>Result/Cellpose/DP8400013846TR_F5_bin1.h5<span class="w"> </span><span class="se">\</span>
+--nucleus-seg-method<span class="w"> </span>Cellpose<span class="w"> </span><span class="se">\</span>
+--nucleus-prop<span class="w"> </span>Result/Cellpose/DP8400013846TR_F5_cellpose_nucleus_property.txt<span class="w"> </span><span class="se">\</span>
+--nucleus-count-h5<span class="w"> </span>Result/Cellpose/DP8400013846TR_F5_Cellpose_segmentation_cell_count.h5<span class="w"> </span><span class="se">\</span>
+--nucleus-seg<span class="w"> </span>Result/Cellpose/DP8400013846TR_F5_Cellpose_nucleus_coord.txt<span class="w"> </span><span class="se">\</span>
+--nworkers<span class="w"> </span><span class="m">16</span><span class="w"> </span><span class="se">\</span>
+--cell-radius<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="se">\</span>
+--spot-imputation-distance<span class="w"> </span><span class="m">2</span>.5<span class="w"> </span><span class="se">\</span>
+--outdir<span class="w"> </span>Result/Cellist_cellpose<span class="w"> </span><span class="se">\</span>
 --outprefix<span class="w"> </span>DP8400013846TR_F5
 </pre></div>
 </div>

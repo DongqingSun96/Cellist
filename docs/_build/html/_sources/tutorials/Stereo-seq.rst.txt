@@ -11,7 +11,7 @@ Here we use a mouse olfactory bulb dataset profiled by Stereo-seq (`Chen et al.,
 Step 1 Registration between staining and spatial expression profile
 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-While the images are initially aligned with RNA coordinates, minor misalignments may still occur. The :bash:`align` function could be used to refine the alignment, which integrates the :bash:`refine_alignment` function with the rigid mode in `Spateo <https://spateo-release.readthedocs.io/en/latest/technicals/cell_segmentation.html#alignment-of-stain-and-rna-coordinates>`_. 
+While the images are initially aligned with RNA coordinates, minor misalignments may still occur. The :bash:`align` function could be used to refine the alignment, which integrates the :bash:`refine_alignment` function with the rigid mode in `Spateo <https://spateo-release.readthedocs.io/en/latest/technicals/cell_segmentation.html#alignment-of-stain-and-rna-coordinates>`_. This step typically takes ~ 2 minutes.
 ::
 
    cellist align --gem Data/DP8400013846TR_F5.bin1.olfactorybulb_cropped.gem \
@@ -24,10 +24,10 @@ While the images are initially aligned with RNA coordinates, minor misalignments
    :width: 100%
    :align: center
 
-Step 2 Watershed segmentation of nucleus
->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+Step 2 Nucleus segmentation via Watershed
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-The initial nucleus segmentation is required for refined cell segmentation by Cellist. In Cellist, we utilize the watershed algorithm to segment nuclei in the ssDNA image, which is implemented by the function of :bash:`watershed`. 
+The initial nucleus segmentation is required for refined cell segmentation by Cellist. In Cellist, we utilize the watershed algorithm to segment nuclei in the ssDNA image, which is implemented by the function of :bash:`watershed`. This step typically takes ~ 4 minutes.
 
 ::
 
@@ -41,10 +41,30 @@ The initial nucleus segmentation is required for refined cell segmentation by Ce
    :width: 100%
    :align: center
 
+
+Step 2 (Optional) Nucleus segmentation via Cellpose
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+As an alternative to watershed—especially for dense tissues—users may choose to use :bash:`cellpose`, which leverages a deep learning model for nucleus segmentation. This step takes ~ 5 minutes using an NVIDIA GeForce RTX 3090.
+
+::
+
+   cellist cellpose --gem Data/DP8400013846TR_F5.bin1.olfactorybulb_cropped.gem \
+   --tif Result/Alignment/DP8400013846TR_F5_regist_transposed_aligned_by_Spateo.tiff \
+   --diameter 10 \
+   --expansion \
+   --expansion-dist 9 \
+   --outdir Result/Cellpose \
+   --outprefix DP8400013846TR_F5
+
+.. image:: ../_static/img/DP8400013846TR_F5_cell_boundary.png
+   :width: 100%
+   :align: center
+
 Step 3 Cell segmentation by Cellist
 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-With nucleus segmentation completed, the next step is to expand the nucleus labels to include the cytoplasm, namely, cell segmentation. In cellist, we take both expression similarity and spatial proximity into consideration when assigning non-nucleus spots to labelled nuclei. 
+With nucleus segmentation completed, the next step is to expand the nucleus labels to include the cytoplasm, namely, cell segmentation. In cellist, we take both expression similarity and spatial proximity into consideration when assigning non-nucleus spots to labelled nuclei. This step takes approximately ~ 10 minutes on a high-performance system.
 
 ::
 
@@ -53,13 +73,31 @@ With nucleus segmentation completed, the next step is to expand the nucleus labe
    --gem Data/DP8400013846TR_F5.bin1.olfactorybulb_cropped.gem \
    --spot-count-h5 Result/Watershed/DP8400013846TR_F5_bin1.h5 \
    --nucleus-seg-method Watershed \
-   --nucleus-prop Result/Watershed/DP8400013846TR_F5_watershed_nucleus_property.txt \
-   --nucleus-count-h5 Result/Watershed/DP8400013846TR_F5_waterhsed_segmentation_cell_count.h5 \
-   --nucleus-seg Result/Watershed/DP8400013846TR_F5_watershed_nucleus_coord.txt \
+   --nucleus-prop Result/Watershed/DP8400013846TR_F5_Watershed_nucleus_property.txt \
+   --nucleus-count-h5 Result/Watershed/DP8400013846TR_F5_Watershed_segmentation_cell_count.h5 \
+   --nucleus-seg Result/Watershed/DP8400013846TR_F5_Watershed_nucleus_coord.txt \
    --nworkers 16 \
    --cell-radius 15 \
    --spot-imputation-distance 2.5 \
    --outdir Result/Cellist \
+   --outprefix DP8400013846TR_F5
+
+Alternatively, users can perform Cellist segmentation based on Cellpose nucleus segmentation.
+
+::
+
+   cellist seg --platform barcoding \
+   --resolution 0.5 \
+   --gem Data/DP8400013846TR_F5.bin1.olfactorybulb_cropped.gem \
+   --spot-count-h5 Result/Cellpose/DP8400013846TR_F5_bin1.h5 \
+   --nucleus-seg-method Cellpose \
+   --nucleus-prop Result/Cellpose/DP8400013846TR_F5_cellpose_nucleus_property.txt \
+   --nucleus-count-h5 Result/Cellpose/DP8400013846TR_F5_Cellpose_segmentation_cell_count.h5 \
+   --nucleus-seg Result/Cellpose/DP8400013846TR_F5_Cellpose_nucleus_coord.txt \
+   --nworkers 16 \
+   --cell-radius 15 \
+   --spot-imputation-distance 2.5 \
+   --outdir Result/Cellist_cellpose \
    --outprefix DP8400013846TR_F5
 
 The results of :bash:`seg` will be stored in the :bash:`Result/Cellist` floder, and the detailed descritions are shown as below.

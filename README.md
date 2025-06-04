@@ -19,8 +19,26 @@ Cellist is a computational method to perform cell segmentation on high-resolutio
 * Update Cellist model.
 * Support Cellpose for image-based segmentation.
 
+## System Requirements
+### Hardware Requirements
+For optimal performance, especially when using `Cellpose` for initial image-based segmentation, a system with a GPU is recommended.
+
+### Operating System
+This package is supported on Linux systems and has been tested on **Rocky Linux release 9.4**.
+
+### Python Rependencies
+The core dependencies include:
+```
+scikit-learn>=1.3.1
+scikit-image>=0.20.0
+h5py>=3.8.0
+tables>=3.7.0
+```
+A complete list of required packages is available in `requirements.txt`.
 
 ## Install Cellist
+### Step-by-step Instructions
+We recommend installing Cellist in a fresh conda environment:
 ```bash
 git clone https://github.com/wanglabtongji/Cellist.git
 cd Cellist
@@ -28,6 +46,8 @@ conda create -n Cellist python=3.10
 pip install -r requirements.txt
 pip install .
 ```
+### Typical Install Time
+On a high-performance server, installation typically takes 10 minutes.
 
 ## Documentation
 For full installation and usage of Cellist, please refer to the [documentation](https://cellist.readthedocs.io/en/latest/).

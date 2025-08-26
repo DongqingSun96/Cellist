@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # @Author: dongqing
 # @Date:   2023-09-13 15:02:14
-# @Last Modified by:   dongqing
-# @Last Modified time: 2025-04-06 22:13:47
+# @Last Modified by:   Dongqing
+# @Last Modified time: 2025-08-25 19:37:21
 
 
 # scale the distance, rather than the coordinates
@@ -498,7 +498,7 @@ def Assign_filter(coord_df, out_dir, out_prefix, noise_prop = 0.25):
     #     fontsize = 7.5, markerscale = 0.8)
     plt.xlabel('Assign probability')
     plt.title(out_prefix, pad = 10)
-    plot_file = os.path.join(out_dir, "%s_cellist_assign_probability.pdf" %out_prefix)
+    plot_file = os.path.join(out_dir, "%s_assign_probability.pdf" %out_prefix)
     plt.savefig(plot_file, bbox_inches='tight')
     # norm
     # hist_res = plt.hist(coord_df_cyto['Cellist_prob_norm'], bins = 200)
@@ -516,7 +516,7 @@ def Assign_filter(coord_df, out_dir, out_prefix, noise_prop = 0.25):
     #     fontsize = 7.5, markerscale = 0.8)
     plt.xlabel('Assign probability')
     plt.title(out_prefix, pad = 10)
-    plot_file = os.path.join(out_dir, "%s_cellist_assign_probability_normalized.pdf" %out_prefix)
+    plot_file = os.path.join(out_dir, "%s_assign_probability_normalized.pdf" %out_prefix)
     plt.savefig(plot_file, bbox_inches='tight')
     q_noise = coord_df_cyto['Cellist_prob'].quantile(noise_prop)
     coord_df['Cellist_unfiltered'] = coord_df['Cellist'].copy()
@@ -531,6 +531,7 @@ def Cellist(platform, resolution, nucleus_seg_method, props_file, nucleus_count_
     patch_data_dir, num_workers,
     alpha, sigma, beta, gene_use, max_dist, two_step, cyto, max_dist_s1_scale, noise_prop_s1, noise_prop, neigh_dist, out_dir, out_prefix):
     # ----------- output prefix ----------
+    out_prefix = out_prefix + "_Cellist"
     if platform == 'barcoding':
         patch_size = 1100
         stride_length = 100
@@ -659,7 +660,7 @@ def Cellist(platform, resolution, nucleus_seg_method, props_file, nucleus_count_
         else:
             Cellist_corr_nucl_cyto, Cellist_corr_nucl_cyto_cell = cal_corr_within_seg_nucleus(count_df, "Cellist", hvg_list, count_name)
         Cellist_corr_nucl_cyto_df = pd.DataFrame({'Cell': Cellist_corr_nucl_cyto_cell, 'Correlation': Cellist_corr_nucl_cyto})
-        Cellist_corr_nucl_cyto_df.to_csv(os.path.join(out_dir, "%s_cellist_corr_nucl_cyto_df.txt" %out_prefix), index = False, sep = "\t")
+        Cellist_corr_nucl_cyto_df.to_csv(os.path.join(out_dir, "%s_corr_nucl_cyto_df.txt" %out_prefix), index = False, sep = "\t")
         # statics
         para_dict['Correlation'] = np.nanquantile(Cellist_corr_nucl_cyto, [0, 0.25, 0.5, 0.75, 1]).tolist()
     except:

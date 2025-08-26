@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # @Author: dongqing
 # @Date:   2024-01-05 20:29:00
-# @Last Modified by:   dongqing
-# @Last Modified time: 2025-03-24 22:05:34
+# @Last Modified by:   Dongqing
+# @Last Modified time: 2025-08-25 18:58:38
 
 
 import sys, os, gc
@@ -137,7 +137,7 @@ def watershed_seg(img, otsu_local_hole_rm, out_dir, out_img_prefix, min_distance
     # 1. watershed segmentation
     segmented_cells = watershed(-distance_local, markers, mask = otsu_local_hole_rm)
     logging.info("Watershed number of segments: %s" %(len(np.unique(segmented_cells))))
-    watershed_seg_file = os.path.join(out_dir, "%s_watershed_nucleus_matrix.npz" %out_img_prefix)
+    watershed_seg_file = os.path.join(out_dir, "%s_Watershed_nucleus_matrix.npz" %out_img_prefix)
     segmented_cells_mat = csc_matrix(segmented_cells, dtype=np.int32)
     save_npz(watershed_seg_file, segmented_cells_mat)
     fig, ax = plt.subplots(figsize=(20, 20))
@@ -250,7 +250,7 @@ def Watershed(platform, gem_path, img_path, out_dir, out_prefix, min_distance, n
         expanded_barcode_df = None
     write_segmentation_cell(nucleus_barcode_df, gem_df, out_gem_prefix, out_dir, seg_method = "Watershed", expansion = expansion, expanded_barcode_df = expanded_barcode_df, expansion_dist = expansion_dist)
     logging.info("Drawing segmentation plot...")
-    draw_segmentation(nucleus_barcode_df, seg_res = "Watershed", out_prefix = "%s_watershed" %out_gem_prefix,
+    draw_segmentation(nucleus_barcode_df, seg_res = "Watershed", out_prefix = "%s_Watershed" %out_gem_prefix,
         out_dir = out_dir, x = "x", y = "y", figsize = (80, 80))
     if expansion:
         draw_segmentation(expanded_barcode_df, seg_res = 'Watershed_expansion_%s' %(expansion_dist), out_prefix = "%s_Watershed_expansion_%s" %(out_gem_prefix, expansion_dist),

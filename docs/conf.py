@@ -7,7 +7,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'Cellist'
-copyright = '2024, Wang Lab at Tongji'
+copyright = '2025, Wang Lab at Tongji'
 author = 'Dongqing Sun'
 release = '1.1.0'
 
@@ -33,7 +33,13 @@ html_static_path = ['_static']
 html_css_files = [
     "custom.css",
 ]
-# html_logo = "_static/img/Cellist_logo_blue_px.png"
+html_logo = "_static/img/Cellist_logo_blue_px.png"
+
+html_theme_options = {
+  "external_links": [
+      ("Github", "https://github.com/wanglabtongji/Cellist"),
+  ]
+}
 
 nbsphinx_thumbnails = {
     "tutorials/Stereo-seq": "_static/img/thumbnail/Mouse_OB.png",

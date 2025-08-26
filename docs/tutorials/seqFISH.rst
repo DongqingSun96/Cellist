@@ -13,6 +13,7 @@ Step 1 Pre-process
 >>>>>>>>>>>>>>>>>>
 
 Cellist was originally developed for barcoding-based high-resolution spatial transcriptomics, where each spot typically contains multiple transcripts. However, in seqFISH+ data, each transcript is detected at single-molecule resolution with a pixel size of ~103 nm.  
+
 To make seqFISH+ data compatible with Cellist, transcripts are aggregated into bins of **5 × 5 pixels**, treating each bin as a “spot,” similar to Stereo-seq. This binning results in data with a resolution of ~0.5 μm, which is suitable for downstream analysis with Cellist. 
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -73,9 +74,10 @@ To make seqFISH+ data compatible with Cellist, transcripts are aggregated into b
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code:: python
+
    coord_count_df = pd.read_csv(os.path.join(res_dir, 'seqFISH+_NIH3T3_points_RNA_rep1.txt'), sep = '\t', header = 0)
    fovs = coord_count_df['FOV'].unique()
-   coord_count_df_cp = coord_count_df.copy()  # 避免修改原数据
+   coord_count_df_cp = coord_count_df.copy()
 
    coord_count_df_cp['x'] = coord_count_df_cp['x'].astype(int)
    coord_count_df_cp['y'] = coord_count_df_cp['y'].astype(int)
@@ -159,7 +161,7 @@ Nucleus segmentation is the prerequisite for subsequent whole-cell segmentation 
    --outprefix FOV_0
 
 .. image:: ../_static/img/FOV_0_cell_boundary.png
-   :width: 100%
+   :width: 80%
    :align: center
 
 Step 3 Cell segmentation by Cellist
@@ -184,8 +186,7 @@ After nuclei are segmented, Cellist expands the nucleus boundaries to include th
    --outdir Result/Cellist/FOV_0 \
    --outprefix FOV_0
 
-:bash:`cellist seg` generates cell segmentation results and corresponding visualizations at the **bin level**. For more detailed visualization, users can project the bin-level segmentation results back to the **pixel level**.
-
+:bash:`seg` generates cell segmentation results and corresponding visualizations at the **bin level**. For more detailed visualization, users can project the bin-level segmentation results back to the **pixel level**.
 
 .. code:: python
 
@@ -215,5 +216,5 @@ After nuclei are segmented, Cellist expands the nucleus boundaries to include th
    draw_segmentation(fov_cellist_df_coord, "Cellist", "FOV_%s_Cellist" %fov, out_dir, x = "x", y = "y", figsize = (10,10))
 
 .. image:: ../_static/img/FOV_0_Cellist_segmentation_plot.png
-   :width: 100%
+   :width: 80%
    :align: center

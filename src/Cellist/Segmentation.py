@@ -2,7 +2,7 @@
 # @Author: dongqing
 # @Date:   2023-09-13 15:02:14
 # @Last Modified by:   Dongqing
-# @Last Modified time: 2025-08-25 19:37:21
+# @Last Modified time: 2025-08-26 14:02:59
 
 
 # scale the distance, rather than the coordinates
@@ -28,6 +28,7 @@ from Cellist.IO import *
 from Cellist.Plot import *
 
 import logging
+logging.getLogger("fontTools.subset").setLevel(logging.WARNING)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s  %(message)s')
 
 import warnings

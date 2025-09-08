@@ -2,7 +2,7 @@
 # @Author: dongqing
 # @Date:   2023-10-14 11:57:10
 # @Last Modified by:   Dongqing
-# @Last Modified time: 2025-08-26 11:33:46
+# @Last Modified time: 2025-08-26 13:58:25
 
 
 import pandas as pd
@@ -53,8 +53,8 @@ def draw_segmentation(coord_df_sub, seg_res, out_prefix, out_dir, x = "X_img", y
     ax.imshow(color.label2rgb(np.array(community_seg), colors = seg_color, bg_label=0))
     ax.axis('off')
     plt.tight_layout()
-    plt.savefig(os.path.join(out_dir, "%s_segmentation_plot.pdf" %out_prefix), dpi=200)
-    plt.savefig(os.path.join(out_dir, "%s_segmentation_plot.png" %out_prefix), dpi=200)
+    plt.savefig(os.path.join(out_dir, "%s_segmentation_plot.pdf" %out_prefix))
+    plt.savefig(os.path.join(out_dir, "%s_segmentation_plot.png" %out_prefix))
 
 def draw_segmentation_prob(coord_df_sub, col_prob, out_prefix, out_dir, x = "X_img", y = "Y_img", figsize = (16, 15)):
     community_seg = coord_df_sub.pivot(index = x, columns = y, values = col_prob)

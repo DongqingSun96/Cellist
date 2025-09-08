@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # @Author: dongqing
 # @Date:   2025-03-08 16:01:35
-# @Last Modified by:   dongqing
-# @Last Modified time: 2025-04-05 10:12:42
+# @Last Modified by:   Dongqing
+# @Last Modified time: 2025-08-26 13:15:17
 
 
 import sys, os, gc
@@ -100,27 +100,27 @@ def cellpose_seg(img, otsu_local_hole_rm, out_dir, out_img_prefix, diameter = 15
     channels = [0, 0]
     segmented_cells, flow, style, diam = model.eval(otsu_local_hole_rm, diameter = diameter, flow_threshold = flow_threshold, channels=channels, cellprob_threshold = cellprob_threshold)
     logging.info("Number of segments: %s" %segmented_cells.max())
-    cellpose_seg_file = os.path.join(out_dir, "%s_cellpose_nucleus_matrix.npz" %out_img_prefix)
+    cellpose_seg_file = os.path.join(out_dir, "%s_Cellpose_nucleus_matrix.npz" %out_img_prefix)
     segmented_cells_mat = csc_matrix(segmented_cells, dtype=np.int32)
     save_npz(cellpose_seg_file, segmented_cells_mat)
     fig, ax = plt.subplots(figsize=(20, 20))
     ax.imshow(mark_boundaries(img, segmented_cells, color = (1,0,0)))
-    plt.savefig(os.path.join(out_dir, "%s_cellpose_boundary.png" %out_img_prefix), bbox_inches='tight')
+    plt.savefig(os.path.join(out_dir, "%s_Cellpose_boundary.png" %out_img_prefix), bbox_inches='tight')
     props = regionprops_table(segmented_cells, 
                               properties=['label', 'area','centroid',
                                           'equivalent_diameter_area'])
     props_df = pd.DataFrame(props)
-    props_df.to_csv(os.path.join(out_dir, "%s_cellpose_nucleus_property.txt" %out_img_prefix), sep = "\t", index = False)
+    props_df.to_csv(os.path.join(out_dir, "%s_Cellpose_nucleus_property.txt" %out_img_prefix), sep = "\t", index = False)
     if expansion:
         expanded = expand_labels(segmented_cells, distance = expansion_dist)
-        cellpose_seg_file = os.path.join(out_dir, "%s_cellpose_cells_expansion%s_matrix.npz" %(out_img_prefix, expansion_dist))
+        cellpose_seg_file = os.path.join(out_dir, "%s_Cellpose_cells_expansion%s_matrix.npz" %(out_img_prefix, expansion_dist))
         expanded_mat = csc_matrix(expanded, dtype=np.int32)
         save_npz(cellpose_seg_file, expanded_mat)
         props_expanded = regionprops_table(expanded, 
                                   properties=['label', 'area','centroid',
                                               'equivalent_diameter_area'])
         props_df_expanded = pd.DataFrame(props_expanded)
-        props_df_expanded.to_csv(os.path.join(out_dir, "%s_cellpose_cells_expansion%s_property.txt" %(out_img_prefix, expansion_dist)), sep = "\t", index = False)
+        props_df_expanded.to_csv(os.path.join(out_dir, "%s_Cellpose_cells_expansion%s_property.txt" %(out_img_prefix, expansion_dist)), sep = "\t", index = False)
         return segmented_cells, expanded
     else:
         return segmented_cells
@@ -170,7 +170,7 @@ def Cellpose(platform, gem_path, img_path, out_dir, out_prefix, no_local_thresho
         expanded_barcode_df = None
     write_segmentation_cell(nucleus_barcode_df, gem_df, out_gem_prefix, out_dir, seg_method = "Cellpose", expansion = expansion, expanded_barcode_df = expanded_barcode_df, expansion_dist = expansion_dist)
     logging.info("Drawing segmentation plot...")
-    draw_segmentation(nucleus_barcode_df, seg_res = "Cellpose", out_prefix = "%s_cellpose" %out_gem_prefix,
+    draw_segmentation(nucleus_barcode_df, seg_res = "Cellpose", out_prefix = "%s_Cellpose" %out_gem_prefix,
         out_dir = out_dir, x = "x", y = "y", figsize = (80, 80))
     if expansion:
         draw_segmentation(expanded_barcode_df, seg_res = 'Cellpose_expansion_%s' %(expansion_dist), out_prefix = "%s_Cellpose_expansion_%s" %(out_gem_prefix, expansion_dist),

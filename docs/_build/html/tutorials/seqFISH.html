@@ -58,6 +58,15 @@
 
 
 
+  
+    <div class="nav-item">
+      <a href="https://github.com/wanglabtongji/Cellist"
+        class="nav-link external">
+          Github <outboundlink></outboundlink>
+      </a>
+    </div>
+  
+
     </navlinks>
   </div>
 </navbar>
@@ -87,6 +96,15 @@
   
 
 
+
+  
+    <div class="nav-item">
+      <a href="https://github.com/wanglabtongji/Cellist"
+        class="nav-link external">
+          Github <outboundlink></outboundlink>
+      </a>
+    </div>
+  
 
             
           </navlinks><div id="searchbox" class="searchbox" role="search">
@@ -194,6 +212,7 @@
 <span class="kn">from</span> <span class="nn">Cellist.Plot</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="kn">from</span> <span class="nn">Cellist.IO</span> <span class="kn">import</span> <span class="o">*</span>
 
+<span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="s2">&quot;location_to_Cellist_demo_data/Cellist_demo_data/seqFISH_NIH3T3&quot;</span><span class="p">)</span>
 <span class="n">data_dir</span> <span class="o">=</span> <span class="s1">&#39;Data&#39;</span>
 <span class="n">res_dir</span> <span class="o">=</span> <span class="s1">&#39;Result/Preprocess&#39;</span>
 <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">res_dir</span><span class="p">):</span>
@@ -301,7 +320,7 @@
      <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">out_dir</span><span class="p">)</span>
    <span class="n">img_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">data_dir</span><span class="p">,</span> <span class="s1">&#39;DAPI_experiment1/final_background_experiment1/MMStack_Pos</span><span class="si">%s</span><span class="s1">.ome.tif&#39;</span> <span class="o">%</span><span class="n">fov</span><span class="p">)</span>
    <span class="n">reader</span> <span class="o">=</span> <span class="n">OMETIFFReader</span><span class="p">(</span><span class="n">fpath</span> <span class="o">=</span> <span class="n">img_path</span><span class="p">)</span>
-   <span class="n">img_array</span><span class="p">,</span> <span class="n">xml_metadata</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+   <span class="n">img_array</span><span class="p">,</span> <span class="n">metadata</span><span class="p">,</span> <span class="n">xml_metadata</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
    <span class="n">img</span> <span class="o">=</span> <span class="n">img_array</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">,:,:]</span>
    <span class="n">imsave</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_dir</span><span class="p">,</span> <span class="s1">&#39;MMStack_Pos</span><span class="si">%s</span><span class="s1">_2D.tif&#39;</span> <span class="o">%</span><span class="n">fov</span><span class="p">),</span> <span class="n">img</span><span class="p">)</span>
 </pre></div>

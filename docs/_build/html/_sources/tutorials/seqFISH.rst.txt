@@ -30,6 +30,7 @@ To make seqFISH+ data compatible with Cellist, transcripts are aggregated into b
    from Cellist.Plot import *
    from Cellist.IO import *
 
+   os.chdir("location_to_Cellist_demo_data/Cellist_demo_data/seqFISH_NIH3T3")
    data_dir = 'Data'
    res_dir = 'Result/Preprocess'
    if not os.path.exists(res_dir):
@@ -141,7 +142,7 @@ To make seqFISH+ data compatible with Cellist, transcripts are aggregated into b
         os.mkdir(out_dir)
       img_path = os.path.join(data_dir, 'DAPI_experiment1/final_background_experiment1/MMStack_Pos%s.ome.tif' %fov)
       reader = OMETIFFReader(fpath = img_path)
-      img_array, xml_metadata = reader.read()
+      img_array, metadata, xml_metadata = reader.read()
       img = img_array[3,1,:,:]
       imsave(os.path.join(out_dir, 'MMStack_Pos%s_2D.tif' %fov), img)
 

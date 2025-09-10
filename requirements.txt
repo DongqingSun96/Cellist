@@ -13,5 +13,6 @@ spateo-release==1.1.0
 leidenalg==0.10.2
 cellpose==3.1.1.1
 pyometiff==0.0.13
+vtk==9.4.1
 sklearn-ann
 alphashape

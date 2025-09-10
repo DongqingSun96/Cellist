@@ -47,6 +47,8 @@ conda activate Cellist
 pip install -r requirements.txt
 pip install .
 ```
+Note: After installation, users can verify the installation by running `cellist --help`. The command may return a message such as `fastpd is not installed. Please compile the fastpd library`. This warning originates from Spateo and does not affect the functionality of `Cellist`.
+
 ### Typical Install Time
 On a high-performance server, installation typically takes 10 minutes.
 

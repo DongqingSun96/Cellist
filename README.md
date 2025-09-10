@@ -43,6 +43,7 @@ We recommend installing Cellist in a fresh conda environment:
 git clone https://github.com/wanglabtongji/Cellist.git
 cd Cellist
 conda create -n Cellist python=3.10
+conda activate Cellist
 pip install -r requirements.txt
 pip install .
 ```

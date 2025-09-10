@@ -204,7 +204,9 @@ The dataset includes both spatial transcriptomics data and a corresponding ssDNA
 <p>Although the staining images are approximately aligned with RNA coordinates, small shifts may still occur.
 The <code class="code highlight bash docutils literal highlight-bash">align</code> command can be used to refine this alignment. It integrates the <code class="code highlight bash docutils literal highlight-bash">refine_alignment</code> function with the rigid mode in <a class="reference external" href="https://spateo-release.readthedocs.io/en/latest/technicals/cell_segmentation.html#alignment-of-stain-and-rna-coordinates">Spateo</a>.
 This step typically takes about <strong>2 minutes</strong> to complete.</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>cellist<span class="w"> </span>align<span class="w"> </span>--gem<span class="w"> </span>Data/DP8400013846TR_F5.bin1.olfactorybulb_cropped.gem<span class="w"> </span><span class="se">\</span>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>location_to_Cellist_demo_data/Cellist_demo_data/Stereoseq_Mouse_OB
+tar<span class="w"> </span>-xvzf<span class="w"> </span>Data/DP8400013846TR_F5.bin1.olfactorybulb_cropped.gem.tar.gz<span class="w"> </span>-C<span class="w"> </span>Data/
+cellist<span class="w"> </span>align<span class="w"> </span>--gem<span class="w"> </span>Data/DP8400013846TR_F5.bin1.olfactorybulb_cropped.gem<span class="w"> </span><span class="se">\</span>
 --tif<span class="w"> </span>Data/ssDNA_cropped_3625_9545_950_5630.tiff<span class="w"> </span><span class="se">\</span>
 --nworkers<span class="w"> </span><span class="m">8</span><span class="w"> </span><span class="se">\</span>
 --outdir<span class="w"> </span>Result/Alignment<span class="w"> </span><span class="se">\</span>
@@ -268,7 +270,7 @@ On a high-performance system, this step takes about <strong>10 minutes</strong>.
 --gem<span class="w"> </span>Data/DP8400013846TR_F5.bin1.olfactorybulb_cropped.gem<span class="w"> </span><span class="se">\</span>
 --spot-count-h5<span class="w"> </span>Result/Cellpose/DP8400013846TR_F5_bin1.h5<span class="w"> </span><span class="se">\</span>
 --nucleus-seg-method<span class="w"> </span>Cellpose<span class="w"> </span><span class="se">\</span>
---nucleus-prop<span class="w"> </span>Result/Cellpose/DP8400013846TR_F5_cellpose_nucleus_property.txt<span class="w"> </span><span class="se">\</span>
+--nucleus-prop<span class="w"> </span>Result/Cellpose/DP8400013846TR_F5_Cellpose_nucleus_property.txt<span class="w"> </span><span class="se">\</span>
 --nucleus-count-h5<span class="w"> </span>Result/Cellpose/DP8400013846TR_F5_Cellpose_segmentation_cell_count.h5<span class="w"> </span><span class="se">\</span>
 --nucleus-seg<span class="w"> </span>Result/Cellpose/DP8400013846TR_F5_Cellpose_nucleus_coord.txt<span class="w"> </span><span class="se">\</span>
 --nworkers<span class="w"> </span><span class="m">16</span><span class="w"> </span><span class="se">\</span>

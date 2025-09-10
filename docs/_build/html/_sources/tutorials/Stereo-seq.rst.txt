@@ -18,6 +18,8 @@ This step typically takes about **2 minutes** to complete.
 
 ::
 
+   cd location_to_Cellist_demo_data/Cellist_demo_data/Stereoseq_Mouse_OB
+   tar -xvzf Data/DP8400013846TR_F5.bin1.olfactorybulb_cropped.gem.tar.gz -C Data/
    cellist align --gem Data/DP8400013846TR_F5.bin1.olfactorybulb_cropped.gem \
    --tif Data/ssDNA_cropped_3625_9545_950_5630.tiff \
    --nworkers 8 \
@@ -100,7 +102,7 @@ Alternatively, Cellist segmentation can also be performed using nuclei obtained 
    --gem Data/DP8400013846TR_F5.bin1.olfactorybulb_cropped.gem \
    --spot-count-h5 Result/Cellpose/DP8400013846TR_F5_bin1.h5 \
    --nucleus-seg-method Cellpose \
-   --nucleus-prop Result/Cellpose/DP8400013846TR_F5_cellpose_nucleus_property.txt \
+   --nucleus-prop Result/Cellpose/DP8400013846TR_F5_Cellpose_nucleus_property.txt \
    --nucleus-count-h5 Result/Cellpose/DP8400013846TR_F5_Cellpose_segmentation_cell_count.h5 \
    --nucleus-seg Result/Cellpose/DP8400013846TR_F5_Cellpose_nucleus_coord.txt \
    --nworkers 16 \

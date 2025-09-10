@@ -214,7 +214,7 @@ After nuclei are segmented, Cellist expands the nucleus boundaries to include th
    fov_cellist_df = pd.merge(fov_count_df, cellist_df[['x_y', 'Cellist']], on = ['x_y'], how = 'right')
    fov_cellist_df = fov_cellist_df.fillna(0)
    fov_cellist_df_coord = fov_cellist_df.drop_duplicates(['x', 'y'])
-   draw_segmentation(fov_cellist_df_coord, "Cellist", "FOV_%s_Cellist" %fov, out_dir, x = "x", y = "y", figsize = (10,10))
+   draw_segmentation(fov_cellist_df_coord, "Cellist", "FOV_%s_Cellist_bin1" %fov, out_dir, x = "x", y = "y", figsize = (10,10))
 
 .. image:: ../_static/img/FOV_0_Cellist_segmentation_plot.png
    :width: 80%

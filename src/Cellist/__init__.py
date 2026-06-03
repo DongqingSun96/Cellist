@@ -60,22 +60,30 @@ def main():
         out_prefix = args.out_prefix
         max_dist_s1_scale = args.max_dist_s1_scale
         noise_prop_s1 = args.noise_prop_s1
-        Cellist(platform = platform, resolution = resolution, nucleus_seg_method = nucleus_seg_method, 
-            props_file = props_file, nucleus_count_h5_file = nucleus_count_h5_file, 
-            nucleus_coord_file = nucleus_coord_file, all_spot_count_h5_file = all_spot_count_h5_file, 
-            spot_expr_file = spot_expr_file, patch_data_dir = patch_data_dir, num_workers = num_workers, 
-            alpha = alpha, sigma = sigma, beta = beta, 
-            gene_use = gene_use, max_dist = max_dist, 
-            two_step = two_step, cyto = cyto, max_dist_s1_scale = max_dist_s1_scale, 
+        min_nucleus_spots = args.min_nucleus_spots
+        slice_size = args.slice_size
+        slice_stride = args.slice_stride
+        Cellist(platform = platform, resolution = resolution, nucleus_seg_method = nucleus_seg_method,
+            props_file = props_file, nucleus_count_h5_file = nucleus_count_h5_file,
+            nucleus_coord_file = nucleus_coord_file, all_spot_count_h5_file = all_spot_count_h5_file,
+            spot_expr_file = spot_expr_file, patch_data_dir = patch_data_dir, num_workers = num_workers,
+            alpha = alpha, sigma = sigma, beta = beta,
+            gene_use = gene_use, max_dist = max_dist,
+            two_step = two_step, cyto = cyto, max_dist_s1_scale = max_dist_s1_scale,
             noise_prop_s1 = noise_prop_s1, noise_prop = noise_prop, neigh_dist = neigh_dist,
+            min_nucleus_spots = min_nucleus_spots,
+            slice_size = slice_size, slice_stride = slice_stride,
             out_dir = out_dir, out_prefix = out_prefix)
     elif args.subcommand == "align":
         gem_path = args.spot_expr_file
         img_path = args.regist_tif_file
         num_workers = args.num_workers
+        transpose_auto = args.transpose_auto
+        transpose = args.transpose
+        prealigned = args.prealigned
         out_dir = args.out_dir
         out_prefix = args.out_prefix
-        Alignment(gem_path = gem_path, img_path = img_path, num_workers = num_workers, 
+        Alignment(gem_path = gem_path, img_path = img_path, num_workers = num_workers, transpose_auto = transpose_auto, transpose = transpose, prealigned = prealigned,
             out_dir = out_dir, out_prefix = out_prefix)
     elif args.subcommand == "watershed":
         platform = args.platform
@@ -87,8 +95,10 @@ def main():
         no_local_threshold = args.no_local_threshold
         expansion = args.expansion
         expansion_dist = args.expansion_dist
+        offset = args.offset
+        test_mode = args.test_mode
         Watershed(platform = platform, gem_path = gem_path, img_path = img_path, out_dir = out_dir, out_prefix = out_prefix,
-        min_distance = min_distance, no_local_threshold = no_local_threshold, expansion = expansion, expansion_dist = expansion_dist)
+        min_distance = min_distance, no_local_threshold = no_local_threshold, expansion = expansion, expansion_dist = expansion_dist, offset = offset, test_mode = test_mode)
     elif args.subcommand == "cellpose":
         platform = args.platform
         gem_path = args.spot_expr_file

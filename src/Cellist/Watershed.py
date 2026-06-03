@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # @Author: dongqing
 # @Date:   2024-01-05 20:29:00
-# @Last Modified by:   dongqing
-# @Last Modified time: 2025-04-07 01:20:58
+# @Last Modified by:   Stacey
+# @Last Modified time: 2025-11-25 12:43:36
 
 
 import sys, os, gc
@@ -22,12 +22,9 @@ from skimage.io import imread, imsave
 from skimage.filters import threshold_otsu, threshold_multiotsu, threshold_niblack, threshold_local
 from skimage.feature import peak_local_max
 from skimage.measure import label, regionprops_table
-from skimage.segmentation import watershed, expand_labels, mark_boundaries
-from skimage.color import label2rgb, rgb2gray, rgb2hed
-from skimage.segmentation import mark_boundaries
+from skimage.segmentation import watershed, expand_labels, mark_boundaries, find_boundaries
 from skimage.morphology import remove_small_holes
-
-from scipy.sparse import csc_matrix, save_npz, load_npz, csr_matrix
+from scipy.sparse import csc_matrix, save_npz, load_npz
 from scipy import ndimage as ndi
 
 from Cellist.Utility import *
@@ -58,14 +55,23 @@ def WatershedParser(subparsers):
     group_input.add_argument("--min-distance", dest = "min_distance", type = int, default = 6,
         help = "The minimal allowed distance (in pixel) separating peaks for watershed segmentation. "
         "Peaks are the local maxima in a region of 2 * min_distance + 1 (i.e. peaks are separated by at least min_distance). Default: 6. ")
-    group_input.add_argument("--no-local-threshold", dest = "no_local_threshold", action = "store_true", 
+    group_input.add_argument("--no-local-threshold", dest = "no_local_threshold", action = "store_true",
         help = "Whether or not to perform local thresholding on the image. "
         "If not set, Cellist will perform local thresholding. If set, the local thresholding will be skipped. ")
-    group_input.add_argument("--expansion", dest = "expansion", action = "store_true", 
+    group_input.add_argument("--offset", dest = "offset", type = float, default = 0,
+        help = "Offset passed to skimage.filters.threshold_local: threshold = local_mean - offset. "
+        "POSITIVE offset LOWERS the threshold (more pixels pass, fg mask grows -> connected mask, "
+        "fewer watershed cells). NEGATIVE offset RAISES the threshold (stricter, suppresses gap noise, "
+        "fg mask shrinks). Only used when local thresholding is enabled. Default: 0. ")
+    group_input.add_argument("--expansion", dest = "expansion", action = "store_true",
         help = "Whether or not to perform expansion after watershed segmentation. "
         "If set, expansion based on watershed segmentation will be performed. ")
     group_input.add_argument("--expansion-dist", dest = "expansion_dist", type = int, default = 8,
         help = "The expansion distance (in pixel). Default: 8. ")
+    group_input.add_argument("--test-mode", dest = "test_mode", action = "store_true",
+        help = "If set, only perform image-level segmentation (thresholding, watershed, "
+        "nucleus-boundary output). Skip reading the GEM file, writing per-cell expression, "
+        "and drawing segmentation plots. Useful for quickly testing segmentation parameters. ")
 
     group_output = parser.add_argument_group("Output arguments")
     group_output.add_argument("--outdir", dest = "out_dir", default = '.',
@@ -74,13 +80,12 @@ def WatershedParser(subparsers):
         help = "The output prefix. ")
     return(parser)
 
-def Thresholding(platform, img_path, out_dir, out_img_prefix, no_local_threshold = False):
+def Thresholding(platform, img_path, out_dir, out_img_prefix, no_local_threshold = False, offset = 0):
     img = imread(img_path)
     logging.info("Read image done. ")
     # 0. multiotsu thresholding
     logging.info("Thresholding... ")
-    # threshold = threshold_multiotsu(img, 3)[0]
-    threshold = threshold_otsu(img)
+    threshold = threshold_multiotsu(img, 3)[0]
     mask = img > threshold
     img_mask = img.copy()
     img_mask[~mask] = 0
@@ -97,7 +102,7 @@ def Thresholding(platform, img_path, out_dir, out_img_prefix, no_local_threshold
         plt.savefig(os.path.join(out_dir, "%s_thresholding.png" %out_img_prefix), bbox_inches='tight')
     else:
         # 1. local thresholding
-        local_thresh = threshold_local(img, block_size = 51, offset=0)
+        local_thresh = threshold_local(img, block_size = 51, offset = offset)
         local = img > local_thresh
         # 2. combine two thresholding results
         mask_local = img_mask > local_thresh
@@ -138,7 +143,7 @@ def watershed_seg(img, otsu_local_hole_rm, out_dir, out_img_prefix, min_distance
     # 1. watershed segmentation
     segmented_cells = watershed(-distance_local, markers, mask = otsu_local_hole_rm)
     logging.info("Watershed number of segments: %s" %(len(np.unique(segmented_cells))))
-    watershed_seg_file = os.path.join(out_dir, "%s_watershed_nucleus_matrix.npz" %out_img_prefix)
+    watershed_seg_file = os.path.join(out_dir, "%s_Watershed_nucleus_matrix.npz" %out_img_prefix)
     segmented_cells_mat = csc_matrix(segmented_cells, dtype=np.int32)
     save_npz(watershed_seg_file, segmented_cells_mat)
     fig, ax = plt.subplots(figsize=(20, 20))
@@ -162,6 +167,19 @@ def watershed_seg(img, otsu_local_hole_rm, out_dir, out_img_prefix, min_distance
         return segmented_cells, expanded
     else:
         return segmented_cells
+
+def get_nucleus_boundaries(segmented_cells):
+    all_boundaries = find_boundaries(segmented_cells, mode='inner')
+    coords = np.argwhere(all_boundaries)
+    labels = segmented_cells[all_boundaries]
+    boundary_coord_df = pd.DataFrame({
+        'x': coords[:,0],
+        'y': coords[:,1],
+        'Label': labels
+    })
+    boundary_coord_df = boundary_coord_df.sort_values(by = ['Label', 'x', 'y'])
+    
+    return boundary_coord_df
 
 def write_segmentation_coord(segmented_cells, coord_df, out_dir, out_gem_prefix, seg_method = "Watershed", expansion = False, expanded = None, expansion_dist = 8):
     logging.info("Writing segmentation results... ")
@@ -210,7 +228,7 @@ def write_segmentation_cell(nucleus_barcode_df, count_df, out_gem_prefix, out_di
             out_dir = out_dir, count_name = count_name)
     logging.info("Writing cell-level expression matrix is done.")
 
-def Watershed(platform, gem_path, img_path, out_dir, out_prefix, min_distance, no_local_threshold, expansion, expansion_dist):
+def Watershed(platform, gem_path, img_path, out_dir, out_prefix, min_distance, no_local_threshold, expansion, expansion_dist, offset = 0, test_mode = False):
     if not out_prefix:
         file_name, file_extension = os.path.splitext(gem_path)
         base_name = os.path.basename(file_name)
@@ -229,13 +247,22 @@ def Watershed(platform, gem_path, img_path, out_dir, out_prefix, min_distance, n
         otsu_local_hole_rm = imread(threshold_file)
         img = imread(img_path)
     else:
-        img, otsu_local_hole_rm = Thresholding(platform, img_path, out_dir, out_img_prefix, no_local_threshold)
+        img, otsu_local_hole_rm = Thresholding(platform, img_path, out_dir, out_img_prefix, no_local_threshold, offset = offset)
     # --------------------- watershed segmentation --------------------- 
     if expansion:
         segmented_cells, expanded = watershed_seg(img, otsu_local_hole_rm, out_dir, out_img_prefix, min_distance = min_distance, expansion = expansion, expansion_dist = expansion_dist)
     else:
         segmented_cells = watershed_seg(img, otsu_local_hole_rm, out_dir, out_img_prefix, min_distance = min_distance, expansion = expansion, expansion_dist = expansion_dist)
-    # --------------------- read gem file --------------------- 
+    # --------------------- write nucleus boundary ------------------
+    boundary_coord_df = get_nucleus_boundaries(segmented_cells)
+    boundary_coord_df = boundary_coord_df.rename(columns={'Label': 'Watershed'})
+    nucleus_boundary_file = os.path.join(out_dir, "%s_%s_nucleus_boundary_coord.txt" %(out_img_prefix, "Watershed"))
+    boundary_coord_df.to_csv(nucleus_boundary_file, sep = '\t', index = False)
+    if test_mode:
+        logging.info("Test mode: skipping GEM read, per-cell expression, and segmentation plots.")
+        logging.info("All done!")
+        return
+    # --------------------- read gem file ---------------------
     logging.info("Reading count file...")
     gem_df = pd.read_csv(gem_path, sep = "\t", comment = "#")
     bin1_out_file = os.path.join(out_dir, "%s_bin1.h5" %out_gem_prefix)
@@ -251,7 +278,7 @@ def Watershed(platform, gem_path, img_path, out_dir, out_prefix, min_distance, n
         expanded_barcode_df = None
     write_segmentation_cell(nucleus_barcode_df, gem_df, out_gem_prefix, out_dir, seg_method = "Watershed", expansion = expansion, expanded_barcode_df = expanded_barcode_df, expansion_dist = expansion_dist)
     logging.info("Drawing segmentation plot...")
-    draw_segmentation(nucleus_barcode_df, seg_res = "Watershed", out_prefix = "%s_watershed" %out_gem_prefix,
+    draw_segmentation(nucleus_barcode_df, seg_res = "Watershed", out_prefix = "%s_Watershed" %out_gem_prefix,
         out_dir = out_dir, x = "x", y = "y", figsize = (80, 80))
     if expansion:
         draw_segmentation(expanded_barcode_df, seg_res = 'Watershed_expansion_%s' %(expansion_dist), out_prefix = "%s_Watershed_expansion_%s" %(out_gem_prefix, expansion_dist),
@@ -270,4 +297,6 @@ if __name__ == '__main__':
     no_local_threshold = parser.no_local_threshold
     expansion = parser.expansion
     expansion_dist = parser.expansion_dist
-    Watershed(platform = platform, gem_path = gem_path, img_path = img_path, out_dir = out_dir, out_prefix = out_prefix, min_distance = min_distance, no_local_threshold = no_local_threshold, expansion = expansion, expansion_dist = expansion_dist)
+    offset = parser.offset
+    test_mode = parser.test_mode
+    Watershed(platform = platform, gem_path = gem_path, img_path = img_path, out_dir = out_dir, out_prefix = out_prefix, min_distance = min_distance, no_local_threshold = no_local_threshold, expansion = expansion, expansion_dist = expansion_dist, offset = offset, test_mode = test_mode)

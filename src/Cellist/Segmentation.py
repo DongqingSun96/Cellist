@@ -568,7 +568,14 @@ def compute_kde_contours(pts, level=0.7, gridsize=200):
     data = np.asarray(pts).T
     if data.shape[1] < 5:
         return None
-    kde = gaussian_kde(data)
+    try:
+        kde = gaussian_kde(data)
+    except np.linalg.LinAlgError:
+        # Degenerate cell: its assigned spots are collinear or coincident, so the
+        # 2D covariance is singular and gaussian_kde cannot be fit. Skip the
+        # boundary for this cell (handled as a None contour downstream) instead
+        # of aborting the whole run. Surfaces at large cell counts (e.g. WTA SCCC).
+        return None
     x_min, y_min = pts.min(axis=0)
     x_max, y_max = pts.max(axis=0)
     x_pad = 0.05 * (x_max - x_min)

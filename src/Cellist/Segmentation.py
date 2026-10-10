@@ -2,7 +2,7 @@
 # @Author: dongqing
 # @Date:   2023-09-13 15:02:14
 # @Last Modified by:   stacey
-# @Last Modified time: 2025-11-25 13:10:41
+# @Last Modified time: 2026-10-10 18:06:30
 
 
 # scale the distance, rather than the coordinates
@@ -654,6 +654,28 @@ def get_cell_boundaries(cellist_seg_df, n_jobs):
     boundaries_df = boundaries_df.sort_values(by = ['Cellist'])
     return boundaries_df
 
+def _merge_slice_results(tmp_file_list_all):
+    # Collect the per-slice soft-clustering tables and keep ONE assignment per spot: the one with
+    # the highest probability over all overlapping slices / patches.
+    # Deterministic by construction: files are read in sorted order and the per-spot choice is made
+    # by sorting on (x_y, Cellist_prob, Cellist). Previously a first-occurrence
+    # drop_duplicates(['x_y', 'Cellist']) ran BEFORE the probability sort, so when the same spot was
+    # assigned to the same cell in several overlapping slices with different probabilities, the
+    # copy that happened to be read first survived. The read order came from set iteration over
+    # the thread/process pool results, so ~1% of labels changed between otherwise identical runs
+    # (checked on E65: 357/357 slice files identical, 53,988 / 5.3M final labels different).
+    # 'Cellist' as the last sort key only breaks exact probability ties; NaN probabilities (not
+    # expected) sort first so they can never win.
+    coord_df_sub_list = []
+    for tmp_file in sorted(set(tmp_file_list_all)):
+        if tmp_file != "NULL":
+            coord_df_sub_list.append(pd.read_csv(tmp_file, sep = "\t"))
+    coord_df_merge = pd.concat(coord_df_sub_list)
+    coord_df_merge = coord_df_merge.dropna(subset = ['Cellist'])
+    coord_df_merge = coord_df_merge.sort_values(by = ['x_y', 'Cellist_prob', 'Cellist'], na_position = 'first')
+    coord_df_merge = coord_df_merge.drop_duplicates(subset = ['x_y'], keep = 'last')
+    return coord_df_merge
+
 AUTO_COUNT_LAYERS = ['EXONIC', 'INTRONIC', 'ExonCount', 'IntronCount']
 
 def _resolve_count_columns(spot_expr_file, count_layers = None):
@@ -835,6 +857,7 @@ def Cellist(platform, resolution, nucleus_seg_method, props_file, nucleus_count_
                 patch_data_dir, gene_use).result()
         gc.collect()
     # ----------- segmentation ----------
+    patch_prefix_list = sorted(patch_prefix_list)
     logging.info('Start segmentation...')
     patch_res_list = []
     tmp_file_list_all = []
@@ -868,16 +891,7 @@ def Cellist(platform, resolution, nucleus_seg_method, props_file, nucleus_count_
     count_df, coord_df, _, nucleus_expr_mat, nucleus_gene, nucleus_cell, _, _, _ = Read_files(
             nucleus_seg_method, props_file, nucleus_count_h5_file, nucleus_coord_file, all_spot_count_h5_file, spot_expr_file,
             load_count = not stream_merge)
-    coord_df_sub_list = []
-    for tmp_file in tmp_file_list_all:
-        if tmp_file != "NULL":
-            coord_df_sub = pd.read_csv(tmp_file, sep = "\t")
-            coord_df_sub_list.append(coord_df_sub)
-    coord_df_merge = pd.concat(coord_df_sub_list)
-    coord_df_merge = coord_df_merge.drop_duplicates(subset = ['x_y', 'Cellist'])
-    coord_df_merge = coord_df_merge.dropna(subset = ['Cellist'])
-    coord_df_merge = coord_df_merge.sort_values(by=['x_y', 'Cellist_prob'])
-    coord_df_merge = coord_df_merge.drop_duplicates(subset = ['x_y'], keep = 'last')
+    coord_df_merge = _merge_slice_results(tmp_file_list_all)
     # coord_df_merge = pd.merge(coord_df, coord_df_merge[['x_y', 'Cellist', 'Cellist_prob', 'Cellist_norm', 'Cellist_prob_norm', 'Cellist_slice']], how = "left", on = "x_y")
     coord_df_merge = pd.merge(coord_df, coord_df_merge[['x_y', 'Cellist', 'Cellist_prob', 'Cellist_norm', 'Cellist_prob_norm']], how = "left", on = "x_y")
     coord_df_merge = Assign_filter(coord_df_merge, out_dir, out_prefix, noise_prop)

@@ -15,6 +15,8 @@ Cellist is a computational method to perform cell segmentation on high-resolutio
 * Build Cellist.
 ### v1.0.0
 * Release Cellist.
+### Unreleased
+* `cellist seg`: new `--count-layers` option (default `auto`). Extra count columns of the GEM such as `EXONIC` / `INTRONIC` are aggregated into additional cell-level matrices (`{outprefix}_Cellist_segmentation_cell_count_EXONIC.h5`, `..._INTRONIC.h5`) with the same gene and cell ordering as the main count matrix, so they can be used directly as the spliced / unspliced layers for RNA velocity.
 
 
 ## Install Cellist

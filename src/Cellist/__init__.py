@@ -63,6 +63,7 @@ def main():
         min_nucleus_spots = args.min_nucleus_spots
         slice_size = args.slice_size
         slice_stride = args.slice_stride
+        count_layers = args.count_layers
         Cellist(platform = platform, resolution = resolution, nucleus_seg_method = nucleus_seg_method,
             props_file = props_file, nucleus_count_h5_file = nucleus_count_h5_file,
             nucleus_coord_file = nucleus_coord_file, all_spot_count_h5_file = all_spot_count_h5_file,
@@ -73,6 +74,7 @@ def main():
             noise_prop_s1 = noise_prop_s1, noise_prop = noise_prop, neigh_dist = neigh_dist,
             min_nucleus_spots = min_nucleus_spots,
             slice_size = slice_size, slice_stride = slice_stride,
+            count_layers = count_layers,
             out_dir = out_dir, out_prefix = out_prefix)
     elif args.subcommand == "align":
         gem_path = args.spot_expr_file

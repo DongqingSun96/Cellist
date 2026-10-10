@@ -113,6 +113,14 @@ def CellistParser(subparsers):
     group_output = parser.add_argument_group("Output arguments")
     group_output.add_argument("--outdir", dest = "out_dir", default = "",help = "Output directory.")
     group_output.add_argument("--outprefix", dest = "out_prefix", default = "",help = "Output prefix.")
+    group_output.add_argument("--count-layers", dest = "count_layers", nargs = "*", default = ["auto"],
+        help = "Extra count columns of the GEM to aggregate into additional cell-level matrices, "
+        "written next to the main count file as {outprefix}_Cellist_segmentation_cell_count_{COLUMN}.h5 "
+        "with exactly the same gene and cell ordering. "
+        "'auto' (default) picks up EXONIC, INTRONIC, ExonCount and IntronCount when present in the GEM header; "
+        "'none' disables it; or give explicit column names, e.g. '--count-layers EXONIC INTRONIC'. "
+        "The main count column (4th column of the GEM, e.g. MIDCount) is always written and is the only "
+        "column used by the segmentation model itself. ")
     return(parser)
 
 def Update_centroid(phy_coord_df, cluster_col):
@@ -646,25 +654,63 @@ def get_cell_boundaries(cellist_seg_df, n_jobs):
     boundaries_df = boundaries_df.sort_values(by = ['Cellist'])
     return boundaries_df
 
-def _write_cell_count_h5_streaming(spot_expr_file, coord_map_df, out_prefix, out_dir, count_name = 'MIDCount'):
+AUTO_COUNT_LAYERS = ['EXONIC', 'INTRONIC', 'ExonCount', 'IntronCount']
+
+def _resolve_count_columns(spot_expr_file, count_layers = None):
+    # Read the GEM header (first non-'#' line) and decide which count columns to aggregate.
+    #   count_name : the main count column = 4th GEM column, whichever name this SAW version
+    #                wrote (MIDCount / MIDCounts). It is the only column the model uses.
+    #   extra_cols : additional count columns (e.g. EXONIC / INTRONIC) aggregated into separate
+    #                cell x gene matrices that share the gene / cell ordering of the main one.
+    #     count_layers == ['auto'] (default) -> AUTO_COUNT_LAYERS that exist in the header
+    #     count_layers == ['none'] or []     -> no extra layers
+    #     otherwise                          -> the given names (missing ones skipped with a warning)
+    with open(spot_expr_file) as f:
+        for line in f:
+            if not line.startswith('#'):
+                header = line.rstrip('\n').split('\t')
+                break
+    count_name = header[3]
+    if count_layers is None:
+        count_layers = ['auto']
+    count_layers = [str(c) for c in count_layers]
+    if len(count_layers) == 0 or [c.lower() for c in count_layers] == ['none']:
+        extra_cols = []
+    elif [c.lower() for c in count_layers] == ['auto']:
+        extra_cols = [c for c in AUTO_COUNT_LAYERS if c in header]
+    else:
+        missing = [c for c in count_layers if c not in header]
+        if missing:
+            logging.warning('--count-layers column(s) not found in the GEM header and skipped: %s' % ', '.join(missing))
+        extra_cols = [c for c in count_layers if c in header]
+    seen = set()
+    extra_cols = [c for c in extra_cols if c != count_name and not (c in seen or seen.add(c))]
+    return count_name, extra_cols
+
+def _write_cell_count_h5_streaming(spot_expr_file, coord_map_df, out_prefix, out_dir, count_name = 'MIDCount', extra_cols = None):
     # Memory-bounded replacement for the merge's final cell x gene aggregation.
     # The original path loads the whole GEM (~1e9 rows, object geneID/x_y) into pandas and
     # pd.merge's it — that was the merge memory spike. Here we stream the GEM with polars,
     # join each spot to its assigned cell (coord_map_df: pandas x, y, Cellist) and sum
-    # MIDCount per (cell, gene). Validated to reproduce the pandas get_cell_mat matrix
+    # count_name per (cell, gene). Validated to reproduce the pandas get_cell_mat matrix
     # exactly (per-cell & per-gene sums bit-identical) at roughly 1/3 the peak RAM.
+    # extra_cols (e.g. ['EXONIC', 'INTRONIC']) are summed in the SAME pass and written as
+    # separate h5 files that share the gene order and cell barcode order of the main file,
+    # so they can be loaded directly as layers of one matrix.
     import polars as pl
     from scipy.sparse import csc_matrix, coo_matrix
+    extra_cols = [c for c in (extra_cols or []) if c != count_name]
+    count_cols = [count_name] + extra_cols
     mapping = (pl.from_pandas(coord_map_df[['x', 'y', 'Cellist']])
                  .filter(pl.col('Cellist').is_not_null())
                  .with_columns([pl.col('x').cast(pl.Int32), pl.col('y').cast(pl.Int32),
                                 pl.col('Cellist').cast(pl.Float64)]))
     agg = (pl.scan_csv(spot_expr_file, separator = '\t', comment_prefix = '#')
-             .select(['x', 'y', 'geneID', count_name])
+             .select(['x', 'y', 'geneID'] + count_cols)
              .with_columns([pl.col('x').cast(pl.Int32), pl.col('y').cast(pl.Int32)])
              .join(mapping.lazy(), on = ['x', 'y'], how = 'inner')
              .group_by(['Cellist', 'geneID'])
-             .agg(pl.col(count_name).sum().alias('n'))
+             .agg([pl.col(c).sum().alias(c) for c in count_cols])
              .collect(streaming = True))
     genes = sorted(agg['geneID'].unique().to_list())
     cells = sorted(agg['Cellist'].unique().to_list())
@@ -672,12 +718,24 @@ def _write_cell_count_h5_streaming(spot_expr_file, coord_map_df, out_prefix, out
     cell_idx = pl.DataFrame({'Cellist': cells, 'ci': np.arange(len(cells), dtype = np.int32)})
     agg = (agg.join(gene_idx, on = 'geneID', how = 'left')
               .join(cell_idx, on = 'Cellist', how = 'left')
-              .select(['gi', 'ci', 'n']))
-    mat = csc_matrix(coo_matrix((agg['n'].to_numpy().astype(np.float32),
-        (agg['gi'].to_numpy(), agg['ci'].to_numpy())), shape = (len(genes), len(cells))), dtype = np.float32)
+              .select(['gi', 'ci'] + count_cols))
+    gi = agg['gi'].to_numpy()
+    ci = agg['ci'].to_numpy()
     cell_barcodes = [str(float(c)) for c in cells]
-    write_10X_h5(filename = os.path.join(out_dir, "%s_segmentation_cell_count.h5" %out_prefix),
-                 matrix = mat, features = genes, barcodes = cell_barcodes, datatype = 'Gene')
+    out_files = {}
+    for col in count_cols:
+        mat = csc_matrix(coo_matrix((agg[col].to_numpy().astype(np.float32), (gi, ci)),
+            shape = (len(genes), len(cells))), dtype = np.float32)
+        # The (cell, gene) pairs come from the main column; an extra layer (e.g. INTRONIC) is
+        # zero on most of them, so drop explicit zeros to keep its h5 small.
+        mat.eliminate_zeros()
+        if col == count_name:
+            out_file = os.path.join(out_dir, "%s_segmentation_cell_count.h5" %out_prefix)
+        else:
+            out_file = os.path.join(out_dir, "%s_segmentation_cell_count_%s.h5" %(out_prefix, col))
+        write_10X_h5(filename = out_file, matrix = mat, features = genes, barcodes = cell_barcodes, datatype = 'Gene')
+        out_files[col] = out_file
+    return out_files
 
 def _hvg_corr_spots_streaming(spot_expr_file, coord_map_df, hvg_list, count_name = 'MIDCount'):
     # Bounded-memory input builder for the nucleus-vs-cytoplasm correlation QC on the
@@ -733,7 +791,8 @@ def Cellist(platform, resolution, nucleus_seg_method, props_file, nucleus_count_
     patch_data_dir, num_workers,
     alpha, sigma, beta, gene_use, max_dist, two_step, cyto, max_dist_s1_scale, noise_prop_s1, noise_prop, neigh_dist, out_dir, out_prefix,
     min_nucleus_spots = 20,
-    slice_size = None, slice_stride = None):
+    slice_size = None, slice_stride = None,
+    count_layers = None):
     # ----------- output prefix ----------
     out_prefix = out_prefix + "_Cellist"
     if platform == 'barcoding':
@@ -830,18 +889,18 @@ def Cellist(platform, resolution, nucleus_seg_method, props_file, nucleus_count_
     out_dir = out_dir, x = "x", y = "y", figsize = (80, 80))
     # Detect the count column name from the GEM header (4th column) instead of
     # hardcoding 'MIDCount': SAW versions emit either 'MIDCount' or 'MIDCounts'.
-    with open(spot_expr_file) as _f:
-        for _line in _f:
-            if not _line.startswith('#'):
-                count_name = _line.rstrip('\n').split('\t')[3]
-                break
+    # Also resolve the extra count layers (e.g. EXONIC / INTRONIC) requested via --count-layers;
+    # they are aggregated in the same pass and written as *_segmentation_cell_count_{COLUMN}.h5.
+    count_name, extra_count_cols = _resolve_count_columns(spot_expr_file, count_layers)
+    if extra_count_cols:
+        logging.info('Extra cell-level count layers to aggregate: %s' % ', '.join(extra_count_cols))
     if stream_merge:
         # Bounded-memory aggregation: stream GEM -> join x,y -> Cellist -> sum per (cell, gene).
-        _write_cell_count_h5_streaming(spot_expr_file, coord_df_merge[['x', 'y', 'Cellist']], out_prefix, out_dir, count_name)
+        _write_cell_count_h5_streaming(spot_expr_file, coord_df_merge[['x', 'y', 'Cellist']], out_prefix, out_dir, count_name,
+            extra_cols = extra_count_cols)
     else:
         count_df = pd.merge(count_df, coord_df_merge[['x_y', 'Cellist', 'Nucleus']], how = "left", on = "x_y")
-        count_name = count_df.columns[3]
-        write_segmentation_h5(count_df, "Cellist", out_prefix, out_dir, count_name)
+        write_segmentation_h5(count_df, "Cellist", out_prefix, out_dir, count_name, extra_cols = extra_count_cols)
     write_segmentation_cell_coord(coord_df_merge, "Cellist", out_prefix, out_dir)
     logging.info('Writing parameters and basic cell statistics...')
     hvg_list = get_hvg(nucleus_expr_mat, nucleus_gene, nucleus_cell, 1000)
@@ -864,6 +923,9 @@ def Cellist(platform, resolution, nucleus_seg_method, props_file, nucleus_count_
         'max_dist': max_dist, 
         'two_step': two_step,
         'noise_prop': noise_prop,
+        'count_name': count_name,
+        'count_layers': count_layers,
+        'extra_count_layers': extra_count_cols,
         'cell_num': cell_num,
         'nspot_nucleus': nspot_nucleus,
         'nspot_all': nspot_all,

@@ -52,17 +52,19 @@ With nucleus segmentation completed, the next step is to expand the nucleus labe
    --resolution 0.5 \
    --gem Data/DP8400013846TR_F5.bin1.olfactorybulb_cropped.gem \
    --spot-count-h5 Result/Watershed/DP8400013846TR_F5_bin1.h5 \
-   --nuclei-prop Result/Watershed/DP8400013846TR_F5_watershed_nucleus_property.txt \
-   --nuclei-count-h5 Result/Watershed/DP8400013846TR_F5_waterhsed_segmentation_cell_count.h5 \
-   --watershed-seg Result/Watershed/DP8400013846TR_F5_watershed_nucleus_coord.txt \
+   --nucleus-seg-method Watershed \
+   --nucleus-prop Result/Watershed/DP8400013846TR_F5_Watershed_nucleus_property.txt \
+   --nucleus-count-h5 Result/Watershed/DP8400013846TR_F5_Watershed_segmentation_cell_count.h5 \
+   --nucleus-seg Result/Watershed/DP8400013846TR_F5_Watershed_nucleus_coord.txt \
    --nworkers 16 \
    --cell-radius 15 \
    --spot-imputation-distance 2.5 \
-   --prob-cutoff 0.6 \
    --outdir Result/Cellist \
    --outprefix DP8400013846TR_F5
 
-The results of :bash:`seg` will be stored in the :bash:`Result/Cellist` floder, and the detailed descritions are shown as below.
+If the GEM carries additional count columns, such as ``EXONIC`` and ``INTRONIC`` written by SAW, :bash:`seg` also aggregates them to the cell level (option :bash:`--count-layers`, default ``auto``). The extra matrices share the gene and cell ordering of the main count matrix, so they can be loaded directly as the spliced / unspliced layers for RNA velocity analysis. Use :bash:`--count-layers none` to disable it, or list the columns explicitly, e.g. :bash:`--count-layers EXONIC INTRONIC`. The segmentation model itself always uses the main count column (the 4th column of the GEM, e.g. ``MIDCount``).
+
+The results of :bash:`seg` will be stored in a sub-folder of :bash:`Result/Cellist` named after the model parameters (e.g. ``alpha_0.9_sigma_1.0_beta_5.0_gene_HVG_dist_15_twostep_False_cyto_False_noise_0.25_neigh_2.5``), all files prefixed with ``{outprefix}_Cellist``. The detailed descriptions are shown as below.
 
 +-----------------------------------------------+-------------------------------------------------------------------------------+
 | File                                          | Description                                                                   |
@@ -73,6 +75,9 @@ The results of :bash:`seg` will be stored in the :bash:`Result/Cellist` floder, 
 +-----------------------------------------------+-------------------------------------------------------------------------------+
 | {outprefix}_segmentation_cell_count.h5        | The aggrefated cell-level expression matrix, stored in the format of h5,      |
 |                                               | where each row represents a gene and each column represents a cell.           |
++-----------------------------------------------+-------------------------------------------------------------------------------+
+| {outprefix}_segmentation_cell_count_{COL}.h5  | Optional (see --count-layers). Cell-level matrix of an extra count column of  |
+|                                               | the GEM (e.g. EXONIC, INTRONIC), same gene and cell ordering as the main one. |
 +-----------------------------------------------+-------------------------------------------------------------------------------+
 | {outprefix}_segmentation_cell_coord.txt       | The spatial coordinates of the segmented cells, which correspond to the cells |
 |                                               | in the above expression file.                                                 |
@@ -91,8 +96,8 @@ In certain cases, the gene coverage within each cell may still be insufficient f
 
 ::
 
-   cellist impute --expr Result/Cellist/alpha_0.8_sigma_1.0_beta_10_gene_HVG_dist_15_iter_False_prob_0.6_neigh_2.5/DP8400013846TR_F5_segmentation_cell_count.h5 \
-   --spatial Result/Cellist/alpha_0.8_sigma_1.0_beta_10_gene_HVG_dist_15_iter_False_prob_0.6_neigh_2.5/DP8400013846TR_F5_segmentation_cell_coord.txt \
+   cellist impute --expr Result/Cellist/alpha_0.9_sigma_1.0_beta_5.0_gene_HVG_dist_15_twostep_False_cyto_False_noise_0.25_neigh_2.5/DP8400013846TR_F5_Cellist_segmentation_cell_count.h5 \
+   --spatial Result/Cellist/alpha_0.9_sigma_1.0_beta_5.0_gene_HVG_dist_15_twostep_False_cyto_False_noise_0.25_neigh_2.5/DP8400013846TR_F5_Cellist_segmentation_cell_coord.txt \
    --nworkers 8 \
    --outdir Result/Imputation_louvain \
    --outprefix DP8400013846TR_F5

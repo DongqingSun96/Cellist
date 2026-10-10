@@ -2,7 +2,7 @@
 # @Author: dongqing
 # @Date:   2023-08-26 22:39:03
 # @Last Modified by:   stacey
-# @Last Modified time: 2026-02-04 15:22:10
+# @Last Modified time: 2026-10-10 18:06:30
 
 import os
 import matplotlib
@@ -351,6 +351,26 @@ def get_cell_mat(count_df_seg, seg_res, count_name = "MIDCount"):
 	gene_cell = count_df_seg[count_name].groupby([count_df_seg[seg_res], count_df_seg['geneID']]).sum()
 	expr_mat, gene_list, cell_list = longdf_to_mat(gene_cell)
 	return(expr_mat, gene_list, cell_list)
+
+def get_cell_mat_multi(count_df_seg, seg_res, count_names):
+	# Aggregate several count columns (e.g. ['MIDCount', 'EXONIC', 'INTRONIC']) into cell x gene
+	# matrices with ONE groupby, so every matrix shares the same gene order and cell order.
+	# Unlike get_cell_mat / longdf_to_mat (set-ordered), genes and cells are sorted here, which
+	# also matches the ordering of the polars streaming path in Segmentation.py.
+	count_names = list(count_names)
+	count_df_seg = count_df_seg.dropna(subset = [seg_res])
+	gene_cell = count_df_seg.groupby([count_df_seg[seg_res], count_df_seg['geneID']])[count_names].sum()
+	cell_codes, cells = pd.factorize(gene_cell.index.get_level_values(0), sort = True)
+	gene_codes, genes = pd.factorize(gene_cell.index.get_level_values(1), sort = True)
+	expr_mats = []
+	for col in count_names:
+		expr_mat = sparse.csc_matrix((gene_cell[col].to_numpy().astype(np.float32), (gene_codes, cell_codes)),
+			shape = (len(genes), len(cells)), dtype = np.float32)
+		expr_mat.eliminate_zeros()
+		expr_mats.append(expr_mat)
+	gene_list = [str(g) for g in genes]
+	cell_list = [str(c) for c in cells]
+	return(expr_mats, gene_list, cell_list)
 
 
 def split_cell_np(xy, index, seg_res, seed):

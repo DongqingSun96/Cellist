@@ -1,0 +1,7 @@
+1.1.1 `2025-09-11`
+~~~~~~~~~~~~~~~~~~~
+
+.. rubric:: Feature
+
+- Fix a typo in the Watershed segmentation
+- Update package dependencies

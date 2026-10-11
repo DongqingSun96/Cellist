@@ -78,7 +78,7 @@ def main():
         gem_path = args.spot_expr_file
         img_path = args.regist_tif_file
         num_workers = args.num_workers
-        transpose_auto = parser.transpose_auto
+        transpose_auto = args.transpose_auto
         transpose = args.transpose
         prealigned = args.prealigned
         out_dir = args.out_dir

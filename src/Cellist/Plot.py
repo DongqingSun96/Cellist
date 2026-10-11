@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # @Author: dongqing
 # @Date:   2023-10-14 11:57:10
-# @Last Modified by:   dongqing
-# @Last Modified time: 2025-02-23 16:17:07
+# @Last Modified by:   Dongqing
+# @Last Modified time: 2025-08-26 13:58:25
 
 
 import pandas as pd
@@ -54,6 +54,7 @@ def draw_segmentation(coord_df_sub, seg_res, out_prefix, out_dir, x = "X_img", y
     ax.axis('off')
     plt.tight_layout()
     plt.savefig(os.path.join(out_dir, "%s_segmentation_plot.pdf" %out_prefix))
+    plt.savefig(os.path.join(out_dir, "%s_segmentation_plot.png" %out_prefix))
 
 def draw_segmentation_prob(coord_df_sub, col_prob, out_prefix, out_dir, x = "X_img", y = "Y_img", figsize = (16, 15)):
     community_seg = coord_df_sub.pivot(index = x, columns = y, values = col_prob)

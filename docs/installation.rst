@@ -27,14 +27,14 @@ Install the stable version
 >>>>>>>>>>>>>>>>>>>>>>>>>>
 
 Step 1 Prepare conda environment for Cellist.
-::::::::::::::::::::::::::::::::::::::::::::
+:::::::::::::::::::::::::::::::::::::::::::::
 :: 
 
-   conda create -n cellist python=3.10
-   conda activate cellist
+   conda create -n Cellist python=3.10
+   conda activate Cellist
 
 Step 2 Install Cellist package from :bash:`pypi`.
-::::::::::::::::::::::::::::::::::::::::::::::::
+:::::::::::::::::::::::::::::::::::::::::::::::::
 ::
 
    pip install -U cellist
@@ -44,27 +44,27 @@ Install the developing version
 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 Step 1 Prepare conda environment for Cellist.
-::::::::::::::::::::::::::::::::::::::::::::
+:::::::::::::::::::::::::::::::::::::::::::::
 :: 
 
-   conda create -n cellist python=3.10
-   conda activate cellist
+   conda create -n Cellist python=3.10
+   conda activate Cellist
 
 Step 2 Download Cellist package from github.
-:::::::::::::::::::::::::::::::::::::::::::
+::::::::::::::::::::::::::::::::::::::::::::
 ::
 
    git clone https://github.com/wanglabtongji/Cellist.git
 
 Step 3 Install dependencies of Cellist.
-::::::::::::::::::::::::::::::::::::::
+:::::::::::::::::::::::::::::::::::::::
 ::
 
    cd Cellist
    pip install -r requirements.txt
 
 Step 4 Install Cellist.
-::::::::::::::::::::::
+:::::::::::::::::::::::
 ::
   
    pip install .

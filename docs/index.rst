@@ -25,7 +25,7 @@ Cell identification in high-resolution Spatial Transcriptomics (**Cellist**), co
    :width: 100%
    :align: center
 
-.. include:: release_notes/1.1.1.rst
+.. include:: release_notes/1.2.0.rst
 
 
 .. toctree::

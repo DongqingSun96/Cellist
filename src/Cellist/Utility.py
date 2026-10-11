@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # @Author: dongqing
 # @Date:   2023-08-26 22:39:03
-# @Last Modified by:   dongqing
-# @Last Modified time: 2025-04-28 20:02:19
+# @Last Modified by:   stacey
+# @Last Modified time: 2026-10-10 18:06:30
 
 import os
 import matplotlib
@@ -281,7 +281,7 @@ def cal_corr_between_seg(count_df_sub, seg_res_1, seg_res_2, count_name = 'MIDCo
 	seg_count_mat_1, seg_count_genes_1, seg_count_cells_1 = longdf_to_mat(gene_seg_cell_1)
 	# segmentation 2
 	count_df_sub_nonoverlap_2 = count_df_sub_nonoverlap[count_df_sub_nonoverlap[seg_res_2].notna()]
-	gene_seg_cell_2 = count_df_sub_nonoverlap_2[count_name].groupby([count_df_sub_nonoverlap_2[seg_res_2], count_df_sub_nonoverlap_2['geneID']]).sum()
+	gene_seg_cell_2 = count_df_sub_nonoverlap_2[count_name ].groupby([count_df_sub_nonoverlap_2[seg_res_2], count_df_sub_nonoverlap_2['geneID']]).sum()
 	seg_count_mat_2, seg_count_genes_2, seg_count_cells_2 = longdf_to_mat(gene_seg_cell_2)
 	# determine cells and genes to use
 	cells_overlap = sorted(np.intersect1d(np.intersect1d(seg_count_cells_overlap, seg_count_cells_1), seg_count_cells_2).tolist())
@@ -308,8 +308,8 @@ def cal_corr_between_seg(count_df_sub, seg_res_1, seg_res_2, count_name = 'MIDCo
 											  cells = seg_count_cells_2, 
 											  cells_sub = cells_overlap, 
 											  genes_sub = genes_use)
-	corr_1 = pearson_corr(seg_count_mat_overlap_use, seg_count_mat_1_use).A.diagonal()
-	corr_2 = pearson_corr(seg_count_mat_overlap_use, seg_count_mat_2_use).A.diagonal()
+	corr_1 = pearson_corr(seg_count_mat_overlap_use.toarray(), seg_count_mat_1_use.toarray()).diagonal()
+	corr_2 = pearson_corr(seg_count_mat_overlap_use.toarray(), seg_count_mat_2_use.toarray()).diagonal()
 	return((corr_1, corr_2, seg_count_cells_2_use))
 
 def KL_divergence(X, Y):
@@ -352,90 +352,158 @@ def get_cell_mat(count_df_seg, seg_res, count_name = "MIDCount"):
 	expr_mat, gene_list, cell_list = longdf_to_mat(gene_cell)
 	return(expr_mat, gene_list, cell_list)
 
-def split_cell_with_line(coord_df_sub_cell, seg_res):
-    """
-    Splits a cell by a randomly oriented line and assigns labels based on projections.
-    
-    Parameters:
-    - coord_df_sub_cell (pd.DataFrame): Subset DataFrame containing coordinates of a single cell.
-    - seg_res (str): Column name representing the segmentation result.
-    
-    Returns:
-    - pd.DataFrame: Modified DataFrame with a new 'Random_{seg_res}' column.
-    """
-    # Calculate the center point
-    cx, cy = coord_df_sub_cell[['x', 'y']].mean()
-    
-    # Generate a random angle for the line
-    line_angle = np.random.uniform(0, np.pi)
-    line_normal = np.array([np.cos(line_angle), np.sin(line_angle)])
-    
-    # Calculate projections of points onto the line
-    points_centered = coord_df_sub_cell[['x', 'y']].to_numpy() - np.array([cx, cy])
-    projections = points_centered @ line_normal  # Using matrix multiplication for efficiency
-    
-    # Assign labels based on projection values
-    coord_df_sub_cell = coord_df_sub_cell.copy()
-    coord_df_sub_cell[f'Random_{seg_res}'] = np.where(projections >= 0, 2, 1)
-    
-    return coord_df_sub_cell
+def get_cell_mat_multi(count_df_seg, seg_res, count_names):
+	# Aggregate several count columns (e.g. ['MIDCount', 'EXONIC', 'INTRONIC']) into cell x gene
+	# matrices with ONE groupby, so every matrix shares the same gene order and cell order.
+	# Unlike get_cell_mat / longdf_to_mat (set-ordered), genes and cells are sorted here, which
+	# also matches the ordering of the polars streaming path in Segmentation.py.
+	count_names = list(count_names)
+	count_df_seg = count_df_seg.dropna(subset = [seg_res])
+	gene_cell = count_df_seg.groupby([count_df_seg[seg_res], count_df_seg['geneID']])[count_names].sum()
+	cell_codes, cells = pd.factorize(gene_cell.index.get_level_values(0), sort = True)
+	gene_codes, genes = pd.factorize(gene_cell.index.get_level_values(1), sort = True)
+	expr_mats = []
+	for col in count_names:
+		expr_mat = sparse.csc_matrix((gene_cell[col].to_numpy().astype(np.float32), (gene_codes, cell_codes)),
+			shape = (len(genes), len(cells)), dtype = np.float32)
+		expr_mat.eliminate_zeros()
+		expr_mats.append(expr_mat)
+	gene_list = [str(g) for g in genes]
+	cell_list = [str(c) for c in cells]
+	return(expr_mats, gene_list, cell_list)
 
-def split_cells_with_line(coord_df, seg_res, num_workers=16):
-    """
-    Splits multiple cells by randomly oriented lines in parallel.
-    
-    Parameters:
-    - coord_df (pd.DataFrame): Main DataFrame containing all cell coordinates.
-    - seg_res (str): Column name representing the segmentation result.
-    - num_workers (int): Number of parallel processes to use.
-    
-    Returns:
-    - pd.DataFrame: Concatenated DataFrame with new 'Random_{seg_res}' columns.
-    """
-    # Get a list of unique cell IDs
-    cell_list = coord_df[seg_res].unique()
-    
-    # Use map instead of submit and wait for better efficiency and simplified code
+
+def split_cell_np(xy, index, seg_res, seed):
+    rng = np.random.default_rng(seed)
+
+    center = xy.mean(axis=0)
+    angle = rng.uniform(0, np.pi)
+    normal = np.array([np.cos(angle), np.sin(angle)])
+
+    projections = (xy - center) @ normal
+    labels = np.where(projections >= 0, 2, 1)
+
+    return index, labels
+
+def split_cells_with_line(coord_df, seg_res, num_workers=16, base_seed=42):
+    results = []
+    new_col = f'Random_{seg_res}'
+    coord_df = coord_df.copy()
+
+    grouped = coord_df.groupby(seg_res)
+
     with concurrent.futures.ProcessPoolExecutor(max_workers=num_workers) as executor:
-        # Use a lambda to pass each cell_id and process it in parallel
-        # This approach reduces data transmission by processing subsets efficiently
-        results = list(executor.map(
-            lambda cell_id: split_cell_with_line(
-                coord_df.loc[coord_df[seg_res] == cell_id].copy(),
-                seg_res
-            ),
-            cell_list
-        ))
+        futures = []
+
+        for i, (cell_id, df_cell) in enumerate(grouped):
+            xy = df_cell[['x', 'y']].to_numpy()
+            index = df_cell.index.to_numpy()
+            seed = base_seed + (hash(cell_id) % 10**6)
+
+            futures.append(
+                executor.submit(
+                    split_cell_np,
+                    xy,
+                    index,
+                    seg_res,
+                    seed
+                )
+            )
+
+        for fut in concurrent.futures.as_completed(futures):
+            idx, labels = fut.result()
+            results.append((idx, labels))
+
+    coord_df[new_col] = 0
+    for idx, labels in results:
+        coord_df.loc[idx, new_col] = labels
+
+    return coord_df
+
+# def split_cell_with_line(coord_df_sub_cell, seg_res):
+#     """
+#     Splits a cell by a randomly oriented line and assigns labels based on projections.
     
-    # Concatenate all resulting DataFrames into one
-    coord_df_merge = pd.concat(results, axis=0, ignore_index=True)
-    return coord_df_merge
+#     Parameters:
+#     - coord_df_sub_cell (pd.DataFrame): Subset DataFrame containing coordinates of a single cell.
+#     - seg_res (str): Column name representing the segmentation result.
+    
+#     Returns:
+#     - pd.DataFrame: Modified DataFrame with a new 'Random_{seg_res}' column.
+#     """
+#     # Calculate the center point
+#     cx, cy = coord_df_sub_cell[['x', 'y']].mean()
+    
+#     # Generate a random angle for the line
+#     line_angle = np.random.uniform(0, np.pi)
+#     line_normal = np.array([np.cos(line_angle), np.sin(line_angle)])
+    
+#     # Calculate projections of points onto the line
+#     points_centered = coord_df_sub_cell[['x', 'y']].to_numpy() - np.array([cx, cy])
+#     projections = points_centered @ line_normal  # Using matrix multiplication for efficiency
+    
+#     # Assign labels based on projection values
+#     coord_df_sub_cell = coord_df_sub_cell.copy()
+#     coord_df_sub_cell[f'Random_{seg_res}'] = np.where(projections >= 0, 2, 1)
+    
+#     return coord_df_sub_cell
 
-def split_cell_with_line(coord_df_sub_cell, seg_res):
-	print(coord_df_sub_cell[seg_res].unique())
-	cx, cy = coord_df_sub_cell.loc[:,['x', 'y']].mean()
-	# generate the angle of the line randomly
-	line_angle = np.random.uniform(0, np.pi)
-	line_normal = np.array([np.cos(line_angle), np.sin(line_angle)])
-	# calculate the the projection from point to line
-	points_centered = coord_df_sub_cell.loc[:,['x', 'y']] - np.array([cx, cy])
-	projections = np.dot(points_centered, line_normal)
-	coord_df_sub_cell['Random_%s' %seg_res] = 1
-	coord_df_sub_cell.loc[projections >= 0, 'Random_%s' %seg_res] = 2
-	return coord_df_sub_cell
+# def split_cells_with_line(coord_df, seg_res, num_workers=16):
+#     """
+#     Splits multiple cells by randomly oriented lines in parallel.
+    
+#     Parameters:
+#     - coord_df (pd.DataFrame): Main DataFrame containing all cell coordinates.
+#     - seg_res (str): Column name representing the segmentation result.
+#     - num_workers (int): Number of parallel processes to use.
+    
+#     Returns:
+#     - pd.DataFrame: Concatenated DataFrame with new 'Random_{seg_res}' columns.
+#     """
+#     # Get a list of unique cell IDs
+#     cell_list = coord_df[seg_res].unique()
+    
+#     # Use map instead of submit and wait for better efficiency and simplified code
+#     with concurrent.futures.ProcessPoolExecutor(max_workers=num_workers) as executor:
+#         # Use a lambda to pass each cell_id and process it in parallel
+#         # This approach reduces data transmission by processing subsets efficiently
+#         results = list(executor.map(
+#             lambda cell_id: split_cell_with_line(
+#                 coord_df.loc[coord_df[seg_res] == cell_id].copy(),
+#                 seg_res
+#             ),
+#             cell_list
+#         ))
+    
+#     # Concatenate all resulting DataFrames into one
+#     coord_df_merge = pd.concat(results, axis=0, ignore_index=True)
+#     return coord_df_merge
 
-def split_cells_with_line(coord_df, seg_res):
-	cell_list = coord_df[seg_res].unique()
-	res_list = []
-	with concurrent.futures.ProcessPoolExecutor(max_workers = 16) as executor:
-		for cell_id in cell_list:
-			coord_df_sub_cell = coord_df.loc[coord_df[seg_res] == cell_id, ]
-			arg_tuple = (coord_df_sub_cell, seg_res)
-			res_list.append(executor.submit(split_cell_with_line, *arg_tuple))
-	done, not_done = concurrent.futures.wait(res_list, timeout=None)
-	coord_df_list = [future.result() for future in done]
-	coord_df_merge = pd.concat(coord_df_list, axis = 0, ignore_index = True)
-	return(coord_df_merge)
+# def split_cell_with_line(coord_df_sub_cell, seg_res):
+# 	print(coord_df_sub_cell[seg_res].unique())
+# 	cx, cy = coord_df_sub_cell.loc[:,['x', 'y']].mean()
+# 	# generate the angle of the line randomly
+# 	line_angle = np.random.uniform(0, np.pi)
+# 	line_normal = np.array([np.cos(line_angle), np.sin(line_angle)])
+# 	# calculate the the projection from point to line
+# 	points_centered = coord_df_sub_cell.loc[:,['x', 'y']] - np.array([cx, cy])
+# 	projections = np.dot(points_centered, line_normal)
+# 	coord_df_sub_cell['Random_%s' %seg_res] = 1
+# 	coord_df_sub_cell.loc[projections >= 0, 'Random_%s' %seg_res] = 2
+# 	return coord_df_sub_cell
+
+# def split_cells_with_line(coord_df, seg_res):
+# 	cell_list = coord_df[seg_res].unique()
+# 	res_list = []
+# 	with concurrent.futures.ProcessPoolExecutor(max_workers = 16) as executor:
+# 		for cell_id in cell_list:
+# 			coord_df_sub_cell = coord_df.loc[coord_df[seg_res] == cell_id, ]
+# 			arg_tuple = (coord_df_sub_cell, seg_res)
+# 			res_list.append(executor.submit(split_cell_with_line, *arg_tuple))
+# 	done, not_done = concurrent.futures.wait(res_list, timeout=None)
+# 	coord_df_list = [future.result() for future in done]
+# 	coord_df_merge = pd.concat(coord_df_list, axis = 0, ignore_index = True)
+# 	return(coord_df_merge)
 
 def cal_corr_within_seg_line(count_df_sub, seg_res, count_name = 'MIDCount', genes_list = None):
 	count_df_sub_in_1 = count_df_sub[count_df_sub['Random_%s' %seg_res] == 1]

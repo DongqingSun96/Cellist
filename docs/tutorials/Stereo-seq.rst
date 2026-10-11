@@ -111,6 +111,8 @@ Alternatively, Cellist segmentation can also be performed using nuclei obtained 
    --outdir Result/Cellist_cellpose \
    --outprefix DP8400013846TR_F5
 
+If the GEM carries additional count columns, such as ``EXONIC`` and ``INTRONIC`` written by SAW, :bash:`seg` also aggregates them to the cell level (option :bash:`--count-layers`, default ``auto``). The extra matrices share the gene and cell ordering of the main count matrix, so they can be loaded directly as the spliced / unspliced layers for RNA velocity analysis. Use :bash:`--count-layers none` to disable it, or list the columns explicitly, e.g. :bash:`--count-layers EXONIC INTRONIC`. The segmentation model itself always uses the main count column (the 4th column of the GEM, e.g. ``MIDCount``).
+
 The outputs of :bash:`seg` are stored in the :bash:`Result/Cellist` folder. A description of the output files is provided below:
 
 +-------------------------------------------------------+----------------------------------------------------------------------------------+
@@ -122,6 +124,9 @@ The outputs of :bash:`seg` are stored in the :bash:`Result/Cellist` folder. A de
 +-------------------------------------------------------+----------------------------------------------------------------------------------+
 | {outprefix}_Cellist_segmentation_cell_count.h5        | Aggregated cell-level expression matrix in h5 format; rows are genes,            |
 |                                                       | columns are cells.                                                               |
++-------------------------------------------------------+----------------------------------------------------------------------------------+
+| {outprefix}_Cellist_segmentation_cell_count_{COL}.h5  | Optional (see --count-layers). Cell-level matrix of an extra count column of the |
+|                                                       | GEM (e.g. EXONIC, INTRONIC); same gene and cell ordering as the main matrix.     |
 +-------------------------------------------------------+----------------------------------------------------------------------------------+
 | {outprefix}_Cellist_segmentation_cell_coord.txt       | Spatial coordinates of segmented cells, corresponding to the expression file.    |
 +-------------------------------------------------------+----------------------------------------------------------------------------------+

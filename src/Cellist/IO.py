@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # @Author: dongqing
 # @Date:   2023-10-14 12:05:31
-# @Last Modified by:   dongqing
-# @Last Modified time: 2025-03-24 20:55:29
+# @Last Modified by:   stacey
+# @Last Modified time: 2026-10-10 18:06:30
 
 import os
 import h5py
@@ -11,7 +11,7 @@ import collections
 import numpy as np
 import pandas as pd
 from scipy import sparse
-from Cellist.Utility import get_cell_mat, longdf_to_mat
+from Cellist.Utility import get_cell_mat, get_cell_mat_multi, longdf_to_mat
 
 FeatureBCMatrix = collections.namedtuple('FeatureBCMatrix', ['ids', 'names', 'barcodes', 'matrix'])
 
@@ -69,10 +69,24 @@ def read_h5(h5_file):
         expr_cells = [i.decode() for i in expr_cells]
     return(expr_mat, expr_genes, expr_cells)
 
-def write_segmentation_h5(count_df_seg, seg_res, out_prefix, out_dir, count_name):
-    expr_mat, gene_list, cell_list = get_cell_mat(count_df_seg, seg_res, count_name)
-    count_h5_file = os.path.join(out_dir, "%s_segmentation_cell_count.h5" %out_prefix)
-    write_10X_h5(filename = count_h5_file, matrix = expr_mat, features = gene_list, barcodes = cell_list, datatype = 'Gene')
+def write_segmentation_h5(count_df_seg, seg_res, out_prefix, out_dir, count_name, extra_cols = None):
+    # extra_cols (e.g. ['EXONIC', 'INTRONIC']): additional count columns written as separate
+    # *_segmentation_cell_count_{COLUMN}.h5 files that share the gene / cell ordering of the
+    # main file (see get_cell_mat_multi). Without extra_cols the behaviour is unchanged.
+    extra_cols = [c for c in (extra_cols or []) if c != count_name]
+    if not extra_cols:
+        expr_mat, gene_list, cell_list = get_cell_mat(count_df_seg, seg_res, count_name)
+        count_h5_file = os.path.join(out_dir, "%s_segmentation_cell_count.h5" %out_prefix)
+        write_10X_h5(filename = count_h5_file, matrix = expr_mat, features = gene_list, barcodes = cell_list, datatype = 'Gene')
+        return
+    count_cols = [count_name] + extra_cols
+    expr_mats, gene_list, cell_list = get_cell_mat_multi(count_df_seg, seg_res, count_cols)
+    for col, expr_mat in zip(count_cols, expr_mats):
+        if col == count_name:
+            count_h5_file = os.path.join(out_dir, "%s_segmentation_cell_count.h5" %out_prefix)
+        else:
+            count_h5_file = os.path.join(out_dir, "%s_segmentation_cell_count_%s.h5" %(out_prefix, col))
+        write_10X_h5(filename = count_h5_file, matrix = expr_mat, features = gene_list, barcodes = cell_list, datatype = 'Gene')
 
 def write_segmentation_cell_coord(coord_df_seg, seg_res, out_prefix, out_dir):
     coord_df_seg = coord_df_seg.dropna(subset = [seg_res])

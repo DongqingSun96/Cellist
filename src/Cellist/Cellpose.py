@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # @Author: dongqing
 # @Date:   2025-03-08 16:01:35
-# @Last Modified by:   Dongqing
-# @Last Modified time: 2025-08-26 13:15:17
+# @Last Modified by:   stacey
+# @Last Modified time: 2025-11-25 12:41:12
 
 
 import sys, os, gc
@@ -36,7 +36,7 @@ from scipy import ndimage as ndi
 from Cellist.Utility import *
 from Cellist.IO import gem_to_mat
 from Cellist.Plot import *
-from Cellist.Watershed import Thresholding, write_segmentation_coord, write_segmentation_cell
+from Cellist.Watershed import Thresholding, write_segmentation_coord, write_segmentation_cell, get_nucleus_boundaries
 
 use_GPU = core.use_gpu()
 print('>>> GPU activated? %s'%use_GPU)
@@ -96,7 +96,14 @@ def cellpose_seg(img, otsu_local_hole_rm, out_dir, out_img_prefix, diameter = 15
     cellprob_threshold = 0, expansion = False, expansion_dist = 8):
     logging.info("Cellpose segmentation... ")
     # 0. load model
-    model = models.Cellpose(gpu=use_GPU, model_type = model_type, device = torch.device('cuda:1'))
+    # Select a valid device instead of hardcoding cuda:1 (which crashed with
+    # 'invalid device ordinal' when only one GPU was visible). Prefer cuda:1 on
+    # multi-GPU machines for backward compatibility, fall back to cuda:0, else CPU.
+    if use_GPU and torch.cuda.is_available():
+        device = torch.device('cuda:1' if torch.cuda.device_count() > 1 else 'cuda:0')
+    else:
+        device = torch.device('cpu')
+    model = models.Cellpose(gpu=use_GPU, model_type = model_type, device = device)
     channels = [0, 0]
     segmented_cells, flow, style, diam = model.eval(otsu_local_hole_rm, diameter = diameter, flow_threshold = flow_threshold, channels=channels, cellprob_threshold = cellprob_threshold)
     logging.info("Number of segments: %s" %segmented_cells.max())
@@ -154,6 +161,11 @@ def Cellpose(platform, gem_path, img_path, out_dir, out_prefix, no_local_thresho
         segmented_cells = cellpose_seg(img, otsu_local_hole_rm, out_dir, out_img_prefix, diameter = diameter, model_type = model_type,
         flow_threshold = flow_threshold, cellprob_threshold = cellprob_threshold,
         expansion = expansion, expansion_dist = expansion_dist)
+    # --------------------- write nucleus boundary ------------------
+    boundary_coord_df = get_nucleus_boundaries(segmented_cells)
+    boundary_coord_df = boundary_coord_df.rename(columns={'Label': 'Cellpose'})
+    nucleus_boundary_file = os.path.join(out_dir, "%s_%s_nucleus_boundary_coord.txt" %(out_img_prefix, "Cellpose"))
+    boundary_coord_df.to_csv(nucleus_boundary_file, sep = '\t', index = False)
     # --------------------- read gem file --------------------- 
     logging.info("Reading count file...")
     gem_df = pd.read_csv(gem_path, sep = "\t", comment = "#")

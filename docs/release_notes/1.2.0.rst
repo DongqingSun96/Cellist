@@ -1,0 +1,13 @@
+1.2.0 `2026-10-11`
+~~~~~~~~~~~~~~~~~~~
+
+.. rubric:: Feature
+
+- ``cellist seg``: new ``--count-layers`` option (default ``auto``). Extra count columns of the GEM such as EXONIC / INTRONIC are aggregated into additional cell-level matrices (``{outprefix}_Cellist_segmentation_cell_count_{COLUMN}.h5``) with the same gene and cell ordering as the main count matrix, ready to be used as the spliced / unspliced layers for RNA velocity
+- ``cellist seg``: default model parameters changed to ``--cell-radius 25``, ``--alpha 0.9``, ``--beta 5.0``
+- ``cellist seg``: deterministic merge of overlapping slices, so identical inputs give identical outputs
+- ``cellist seg``: memory-bounded merge that streams the GEM with ``polars``; the GEM count column (``MIDCount`` / ``MIDCounts``) is detected automatically
+- ``cellist align``: new ``--transpose``, ``--transpose_auto`` and ``--prealigned`` options
+- ``cellist watershed``: new ``--offset`` and ``--test-mode`` options
+- ``cellist cellpose``: GPU device selected automatically
+- New dependency ``polars``

@@ -297,8 +297,8 @@ def Soft_assignment_2step_cyto(nucleus_seg_method, nonnucl_enhanced_array, nonnu
 
 def Soft_assignment_slice(count_df_patch, coord_df_patch, nucleus_seg_method, props_df_patch,
     all_count_mat, all_count_genes, all_count_spots,
-    xmin_cur, xmax_cur, ymin_cur, ymax_cur, selected_genes, max_dist = 15, resolution = 0.5,
-    alpha = 0.8, out_dir = ".", sigma = 1.0, beta = 10, two_step = False, cyto = False, max_dist_s1_scale = 0.5, noise_prop_s1 = 0.4, noise_prop = 0.25, neigh_dist = 2.5,
+    xmin_cur, xmax_cur, ymin_cur, ymax_cur, selected_genes, max_dist = 25, resolution = 0.5,
+    alpha = 0.9, out_dir = ".", sigma = 1.0, beta = 5.0, two_step = False, cyto = False, max_dist_s1_scale = 0.5, noise_prop_s1 = 0.4, noise_prop = 0.25, neigh_dist = 2.5,
     min_nucleus_spots = 20):
     coord_df_slice = coord_df_patch.loc[(coord_df_patch['x'] >= xmin_cur) & (coord_df_patch['x'] < xmax_cur) &
                                 (coord_df_patch['y'] >= ymin_cur) & (coord_df_patch['y'] < ymax_cur) , :]

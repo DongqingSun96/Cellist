@@ -203,7 +203,7 @@ After nuclei are segmented, Cellist expands the nucleus boundaries to include th
    coord_count_df['y_bin'] = (coord_count_df['y']/bin_size).astype(np.uint32)*bin_size
    coord_count_df['x_y'] = coord_count_df['x_bin'].astype(str) + "_" + coord_count_df['y_bin'].astype(str)
 
-   cellist_res = 'alpha_0.8_sigma_1.0_beta_10_gene_HVG_dist_10_twostep_False_cyto_False_noise_0.0_neigh_2.5'
+   cellist_res = 'alpha_0.9_sigma_1.0_beta_5.0_gene_HVG_dist_10_twostep_False_cyto_False_noise_0.0_neigh_2.5'
    fov = 0
    print(fov)
    cellist_dir = os.path.join('Result/Cellist', 'FOV_%s' %fov, cellist_res)

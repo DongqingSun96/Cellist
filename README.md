@@ -23,6 +23,7 @@ Cellist is a computational method to perform cell segmentation on high-resolutio
 * Update package dependencies.
 ### Unreleased
 * `cellist seg`: new `--count-layers` option (default `auto`). Extra count columns of the GEM such as `EXONIC` / `INTRONIC` are aggregated into additional cell-level matrices (`{outprefix}_Cellist_segmentation_cell_count_EXONIC.h5`, `..._INTRONIC.h5`) with the same gene and cell ordering as the main count matrix, so they can be used directly as the spliced / unspliced layers for RNA velocity.
+* `cellist seg`: default model parameters changed to `--cell-radius 25`, `--alpha 0.9`, `--beta 5.0` (v1.1.1: 15, 0.8, 10). Runs that relied on the old defaults should pass them explicitly.
 * `cellist seg`: the merge of overlapping slices / patches is now deterministic. Each spot keeps the assignment with the highest probability over all slices; previously a first-occurrence de-duplication ran before the probability sort, so about 1% of labels depended on the order in which worker results were collected and changed between otherwise identical runs.
 
 ## System Requirements

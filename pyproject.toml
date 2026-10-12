@@ -5,6 +5,7 @@ build-backend = "setuptools.build_meta"
 requires-python = ">= 3.10"
 name = "Cellist"
 dynamic = ["version"]
+readme = "README.md"
 authors = [
     {name = "Dongqing Sun", email = "Dongqingsun96@gmail.com"},
 ]

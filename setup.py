@@ -29,7 +29,6 @@ def main():
             "":["*.txt"]
         },
         install_requires = requirements,
-        setup_requires = requirements,
         include_package_data = True,
         author = "Dongqing Sun",
         author_email = "Dongqingsun96@gmail.com",
